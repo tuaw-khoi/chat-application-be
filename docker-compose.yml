@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  server:
+    build: .
+    ports:
+      - '3000:3000'
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: ['npm', 'run', 'start:dev']
+
+  db:
+    image: postgres
+    ports:
+      - '5434:5432'
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: root
+      POSTGRES_DB: postgres
