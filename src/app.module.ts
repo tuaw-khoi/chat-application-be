@@ -9,6 +9,8 @@ import { RoomModule } from './room/room.module';
 import { MessageModule } from './message/message.module';
 import { AppDataSource } from './db/migrations/data-source';
 import { ConfigModule } from '@nestjs/config';
+import { AuthModule } from './auth/auth.module';
+import { FirebaseModule } from './config/firebase/firebase.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { ConfigModule } from '@nestjs/config';
     FriendModule,
     RoomModule,
     MessageModule,
+    AuthModule,
+    FirebaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],

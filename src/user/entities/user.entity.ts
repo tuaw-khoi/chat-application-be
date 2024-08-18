@@ -1,7 +1,3 @@
-import { FriendRequest } from 'src/friend-request/entities/friendRequest.entity';
-import { Friend } from 'src/friend/entities/friend.entity';
-import { Message } from 'src/message/entities/message.entity';
-import { Room } from 'src/room/entities/room.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -11,23 +7,37 @@ import {
   ManyToMany,
   OneToMany,
 } from 'typeorm';
+import { FriendRequest } from 'src/friend-request/entities/friendRequest.entity';
+import { Friend } from 'src/friend/entities/friend.entity';
+import { Message } from 'src/message/entities/message.entity';
+import { Room } from 'src/room/entities/room.entity';
 
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({
-    enum: ['ADMIN', 'USER'],
-  })
   @Column({ unique: true })
   username: string;
+
+  @Column({ nullable: true })
+  fullname: string;
 
   @Column()
   email: string;
 
-  @Column()
+  @Column({ nullable: true }) // Để password có thể null trong trường hợp đăng nhập bằng Google
   password: string;
+
+  @Column({
+    type: 'enum',
+    enum: ['ADMIN', 'USER'],
+    default: 'USER',
+  })
+  Role: string;
+
+  @Column({ nullable: true }) // Có thể null trong trường hợp không có ảnh đại diện từ Google
+  img: string;
 
   @CreateDateColumn()
   created_at: Date;
