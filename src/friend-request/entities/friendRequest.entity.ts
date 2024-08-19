@@ -1,4 +1,3 @@
-import { User } from 'src/user/entities/user.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -6,7 +5,7 @@ import {
   CreateDateColumn,
   Column,
 } from 'typeorm';
-
+import { User } from 'src/user/entities/user.entity';
 
 @Entity()
 export class FriendRequest {
@@ -19,9 +18,9 @@ export class FriendRequest {
   @ManyToOne(() => User, (user) => user.receivedFriendRequests)
   receiver: User;
 
-  @Column({ default: false })
-  accepted: boolean;
+  @Column({ default: 'pending' })
+  status: 'pending' | 'accepted' | 'rejected';
 
   @CreateDateColumn()
-  sent_at: Date;
+  created_at: Date;
 }

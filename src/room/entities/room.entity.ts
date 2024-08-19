@@ -6,14 +6,13 @@ import {
   Column,
   ManyToMany,
   OneToMany,
+  JoinTable,
 } from 'typeorm';
-
-
 
 @Entity()
 export class Room {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: string;
 
   @Column()
   name: string;
@@ -22,7 +21,12 @@ export class Room {
   isPublic: boolean;
 
   @ManyToMany(() => User, (user) => user.rooms)
+  @JoinTable()
   users: User[];
+
+  @ManyToMany(() => User, (user) => user.rooms)
+  @JoinTable()
+  admins: User[];
 
   @OneToMany(() => Message, (message) => message.room)
   messages: Message[];

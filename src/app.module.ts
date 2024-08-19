@@ -11,6 +11,8 @@ import { AppDataSource } from './db/migrations/data-source';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { FirebaseModule } from './config/firebase/firebase.module';
+import { ChatModule } from './chat/chat.module';
+import { SocketModule } from './socket/socket.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { FirebaseModule } from './config/firebase/firebase.module';
     MessageModule,
     AuthModule,
     FirebaseModule,
+    ChatModule,
+    SocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],
