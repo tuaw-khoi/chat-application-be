@@ -11,6 +11,7 @@ import { MessageModule } from 'src/message/message.module';
 import { RoomModule } from 'src/room/room.module'; // Nhập khẩu RoomModule
 import { FriendModule } from 'src/friend/friend.module'; // Nhập khẩu FriendModule nếu cần
 import { Friend } from 'src/friend/entities/friend.entity';
+import { ChatController } from './chat.controller'; // Nhập khẩu ChatController
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { Friend } from 'src/friend/entities/friend.entity';
     FriendModule,
   ],
   providers: [ChatService, MessageService, RoomService, FriendService],
+  controllers: [ChatController],
   exports: [ChatService],
 })
 export class ChatModule {}

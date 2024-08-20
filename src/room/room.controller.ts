@@ -37,4 +37,16 @@ export class RoomController {
   async findOne(@Param('id') id: string) {
     return this.roomService.findOneRoom(id);
   }
+
+  @Get(':userId')
+  async getUserRooms(@Param('userId') userId: string) {
+    const rooms = await this.roomService.getUserRooms(userId);
+    return rooms;
+  }
+
+  @Get(':roomId/messages')
+  async getRoomMessages(@Param('roomId') roomId: string) {
+    const messages = await this.roomService.getRoomMessages(roomId);
+    return messages;
+  }
 }

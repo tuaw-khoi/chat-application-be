@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param } from '@nestjs/common';
 import { MessageService } from './message.service';
 import { CreateMessageDto } from './dtos/create-message.dto';
 
@@ -13,5 +13,10 @@ export class MessageController {
       createMessageDto.roomId,
       createMessageDto.content,
     );
+  }
+
+  @Get(':roomId')
+  async getMessages(@Param('roomId') roomId: string) {
+    return this.messageService.getMessagesByRoom(roomId);
   }
 }

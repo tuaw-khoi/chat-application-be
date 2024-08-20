@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Room } from './entities/room.entity';
 import { User } from 'src/user/entities/user.entity';
 import { CreateRoomDto } from './dtos/create-room.dto';
+import { Message } from 'src/message/entities/message.entity';
 
 @Injectable()
 export class RoomService {
@@ -12,16 +13,16 @@ export class RoomService {
     private roomRepository: Repository<Room>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Message)
+    private MessageRepository: Repository<Message>,
   ) {}
 
   async createRoom(createRoomDto: CreateRoomDto): Promise<Room> {
-
     const admins = await this.userRepository.findByIds(createRoomDto.admins);
-    
+    console.log(admins);
     if (admins.length !== createRoomDto.admins.length) {
       throw new NotFoundException('One or more admins not found');
     }
-
 
     const room = this.roomRepository.create({
       ...createRoomDto,
@@ -70,17 +71,32 @@ export class RoomService {
   }
 
   async findAllRooms(): Promise<Room[]> {
-    return this.roomRepository.find({ relations: ['users'] });
+    return this.roomRepository.find({ relations: ['users', 'admins'] });
   }
 
   async findOneRoom(id: string): Promise<Room> {
     try {
       return await this.roomRepository.findOneOrFail({
         where: { id },
-        relations: ['users'],
+        relations: ['users', 'admins'],
       });
     } catch (error) {
       throw new NotFoundException('Room not found');
     }
+  }
+
+  async getUserRooms(userId: string): Promise<Room[]> {
+    return this.roomRepository.find({
+      where: { users: { id: userId } },
+      relations: ['users', 'messages'],
+    });
+  }
+
+  async getRoomMessages(roomId: string): Promise<Message[]> {
+    return this.MessageRepository.find({
+      where: { room: { id: roomId } },
+      relations: ['sender'],
+      order: { sent_at: 'ASC' },
+    });
   }
 }
