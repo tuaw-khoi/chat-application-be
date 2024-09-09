@@ -57,7 +57,6 @@ export class FriendRequestService {
     requestId: number,
     status: 'accepted' | 'rejected',
   ) {
-    console.log(requestId);
     const friendRequest = await this.friendRequestRepository.findOne({
       where: { id: requestId },
       relations: ['sender', 'receiver'],

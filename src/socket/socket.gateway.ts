@@ -78,4 +78,23 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.leave(roomId.toString());
     console.log(`Client ${client.id} left room ${roomId}`);
   }
+
+  @SubscribeMessage('searchFriends')
+  async handleSearchFriends(
+    @MessageBody() data: { query: string; userId: string },
+    @ConnectedSocket() client: Socket, // Lấy client đang gửi yêu cầu
+  ) {
+    const { query, userId } = data;
+    if (query.trim() === '') {
+      client.emit('searchFriendsResult', 'name');
+      return;
+    }
+    const friends = await this.userService.searchFriends(query, userId);
+    const friendsReturn = friends.map((friend) => ({
+      id: friend.id,
+      fullname: friend.fullname,
+      img: friend.img,
+    }));
+    client.emit('searchFriendsResult', friendsReturn);
+  }
 }

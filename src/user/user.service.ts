@@ -26,7 +26,12 @@ export class UserService {
       if (!user) {
         throw new NotFoundException('User not found.');
       }
-      const userReturn = { fullname: user.fullname, role: user.Role };
+      const userReturn = {
+        id: user.id,
+        role: user.Role,
+        img: user.img,
+        fullname: user.fullname,
+      };
 
       return { userReturn };
     } catch (error) {
@@ -114,5 +119,26 @@ export class UserService {
 
   async findByUsername(username: string): Promise<User | undefined> {
     return this.usersRepository.findOne({ where: { username } });
+  }
+
+  async searchFriends(query: string, userId: string): Promise<User[]> {
+    // Kiểm tra nếu query trống hoặc chỉ có khoảng trắng
+    if (!query.trim()) {
+      return [];
+    }
+
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .innerJoin(
+        'user.friends', // Tên quan hệ từ User đến bảng friends
+        'friend', // Alias cho bảng friends
+        '(friend.user1Id = :userId OR friend.user2Id = :userId)', // Điều kiện join
+        { userId },
+      )
+      .where('(user.id = friend.user1Id OR user.id = friend.user2Id)') // Điều kiện để lấy user đúng
+      .andWhere('user.id <> :userId', { userId }) // Loại bỏ người dùng hiện tại khỏi kết quả
+      .where('user.fullname ILIKE :query', { query: `%${query}%` }) // Điều kiện tìm kiếm theo tên
+      .take(15) // Giới hạn kết quả
+      .getMany();
   }
 }
