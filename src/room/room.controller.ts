@@ -14,18 +14,18 @@ export class RoomController {
 
   @Post(':roomId/join')
   async join(
-    @Param('roomId') roomId: string,
+    @Param('roomId') roomId: number,
     @Body() joinRoomDto: JoinRoomDto,
   ) {
-    return this.roomService.addUserToRoom(roomId, joinRoomDto.userId);
+    return this.roomService.addUserToRoom( joinRoomDto.userId,roomId);
   }
 
   @Post(':roomId/leave')
   async leave(
-    @Param('roomId') roomId: string,
+    @Param('roomId') roomId: number,
     @Body() joinRoomDto: JoinRoomDto,
   ) {
-    return this.roomService.removeUserFromRoom(joinRoomDto.userId, roomId);
+    return this.roomService.removeUserFromRoom(roomId,joinRoomDto.userId);
   }
 
   @Get()
@@ -34,7 +34,7 @@ export class RoomController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: number) {
     return this.roomService.findOneRoom(id);
   }
 
@@ -45,7 +45,7 @@ export class RoomController {
   }
 
   @Get(':roomId/messages')
-  async getRoomMessages(@Param('roomId') roomId: string) {
+  async getRoomMessages(@Param('roomId') roomId: number) {
     const messages = await this.roomService.getRoomMessages(roomId);
     return messages;
   }

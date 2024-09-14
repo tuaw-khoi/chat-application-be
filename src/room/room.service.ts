@@ -32,7 +32,7 @@ export class RoomService {
     return this.roomRepository.save(room);
   }
 
-  async addUserToRoom(roomId: string, userId: string): Promise<void> {
+  async addUserToRoom( userId: string,roomId: number): Promise<void> {
     const room = await this.roomRepository.findOne({
       where: { id: roomId },
       relations: ['users'],
@@ -56,7 +56,7 @@ export class RoomService {
     // throw `User ${userId} added to room ${roomId}`;
   }
 
-  async removeUserFromRoom(roomId: string, userId: string): Promise<void> {
+  async removeUserFromRoom(roomId: number, userId: string): Promise<void> {
     const room = await this.roomRepository.findOne({
       where: { id: roomId },
       relations: ['users'],
@@ -74,7 +74,7 @@ export class RoomService {
     return this.roomRepository.find({ relations: ['users', 'admins'] });
   }
 
-  async findOneRoom(id: string): Promise<Room> {
+  async findOneRoom(id: number): Promise<Room> {
     try {
       return await this.roomRepository.findOneOrFail({
         where: { id },
@@ -92,7 +92,7 @@ export class RoomService {
     });
   }
 
-  async getRoomMessages(roomId: string): Promise<Message[]> {
+  async getRoomMessages(roomId: number): Promise<Message[]> {
     return this.MessageRepository.find({
       where: { room: { id: roomId } },
       relations: ['sender'],

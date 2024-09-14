@@ -8,5 +8,5 @@ export class CreateMessageDto {
   senderId: string;
 
   @IsUUID()
-  roomId: string;
+  roomId: number;
 }

@@ -9,14 +9,14 @@ export class MessageService {
     @InjectRepository(Message)
     private messageRepository: Repository<Message>,
   ) {}
-  async getLatestMessageInRoom(roomId: string): Promise<Message> {
+  async getLatestMessageInRoom(roomId: number): Promise<Message> {
     return this.messageRepository.findOne({
       where: { room: { id: roomId } },
       order: { sent_at: 'DESC' },
     });
   }
 
-  async createMessage(senderId: string, roomId: string, content: string) {
+  async createMessage(senderId: string, roomId: number, content: string) {
     const message = this.messageRepository.create({
       sender: { id: senderId },
       room: { id: roomId },
@@ -25,13 +25,13 @@ export class MessageService {
     return await this.messageRepository.save(message);
   }
 
-  async countMessages(senderId: string, roomId: string): Promise<number> {
+  async countMessages(senderId: string, roomId: number): Promise<number> {
     return await this.messageRepository.count({
       where: { sender: { id: senderId }, room: { id: roomId } },
     });
   }
 
-  async getMessagesByRoom(roomId: string) {
+  async getMessagesByRoom(roomId: number) {
     const mess = this.messageRepository.find({
       where: { room: { id: roomId } },
       order: { sent_at: 'ASC' },

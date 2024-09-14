@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from 'src/chat/chat.service';
+import { FriendService } from 'src/friend/friend.service';
 import { UserService } from 'src/user/user.service';
 
 @WebSocketGateway({
@@ -21,7 +22,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(
     private readonly chatService: ChatService,
-    private readonly userService: UserService,
+    private readonly friendService: FriendService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -38,27 +39,39 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody()
     data: {
       content: string;
-      roomId?: string;
+      roomId?: number;
       senderId: string;
       reciveId?: string;
     },
   ) {
-    let roomId = data.roomId;
-    if (!roomId && data.reciveId) {
-      const room = await this.chatService.createRoomForUsers(
+    try {
+      if (!data.content || data.content.trim() === '') {
+        throw new Error('Content of the message cannot be empty');
+      }
+      let roomId = data.roomId;
+      if (roomId === undefined && data.reciveId) {
+        const room = await this.chatService.createRoomForUsers(
+          data.senderId,
+          data.reciveId,
+        );
+        roomId = room.id;
+
+        client.emit('newroomId', roomId);
+      }
+
+      if (roomId === undefined) {
+        throw new Error('Room ID is required');
+      }
+
+      const message = await this.chatService.createMessage(
+        roomId,
         data.senderId,
-        data.reciveId,
+        data.content,
       );
-      roomId = room.id;
+      this.server.to(roomId.toString()).emit('newMessage', message);
+    } catch (error) {
+      client.emit('errorNewChat', { message: 'Failed to send message', error });
     }
-
-    const message = await this.chatService.createMessage(
-      roomId,
-      data.senderId,
-      data.content,
-    );
-
-    this.server.to(roomId.toString()).emit('newMessage', message);
   }
 
   @SubscribeMessage('joinRoom')
@@ -66,6 +79,12 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() roomId: number,
   ) {
+    if (roomId === null || roomId === -1) {
+      return;
+    }
+    if (roomId === undefined) {
+      throw new Error('Room ID is required');
+    }
     client.join(roomId.toString());
     console.log(`Client ${client.id} joined room ${roomId}`);
   }
@@ -75,6 +94,9 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() roomId: number,
   ) {
+    if (roomId === undefined) {
+      throw new Error('Room ID is required');
+    }
     client.leave(roomId.toString());
     console.log(`Client ${client.id} left room ${roomId}`);
   }
@@ -82,19 +104,35 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('searchFriends')
   async handleSearchFriends(
     @MessageBody() data: { query: string; userId: string },
-    @ConnectedSocket() client: Socket, // Lấy client đang gửi yêu cầu
+    @ConnectedSocket() client: Socket,
   ) {
     const { query, userId } = data;
     if (query.trim() === '') {
-      client.emit('searchFriendsResult', 'name');
+      client.emit('searchFriendsResult', []);
       return;
     }
-    const friends = await this.userService.searchFriends(query, userId);
-    const friendsReturn = friends.map((friend) => ({
-      id: friend.id,
-      fullname: friend.fullname,
-      img: friend.img,
-    }));
+
+    // Tìm kiếm bạn bè dựa trên query
+    const friends = await this.friendService.searchFriends(query, userId);
+    // Lấy danh sách bạn bè và kiểm tra xem có phòng giữa user và bạn đó không
+    const friendsReturn = await Promise.all(
+      friends.map(async (friend) => {
+        // Kiểm tra xem đã có room giữa user và friend chưa
+        const room = await this.chatService.checkRoomForUsers(
+          userId,
+          friend.id,
+        );
+
+        return {
+          id: friend.id,
+          fullname: friend.fullname,
+          img: friend.img,
+          roomId: room ? room.id : null, // Nếu đã có room, gửi kèm roomId
+        };
+      }),
+    );
+
+    // Trả kết quả về client
     client.emit('searchFriendsResult', friendsReturn);
   }
 }

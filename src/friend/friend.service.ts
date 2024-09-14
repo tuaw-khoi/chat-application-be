@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike, In } from 'typeorm';
 import { Friend } from './entities/friend.entity';
 import { User } from 'src/user/entities/user.entity';
 
@@ -34,5 +34,34 @@ export class FriendService {
       ],
     });
     return !!friendship;
+  }
+
+  async searchFriends(query: string, userId: string): Promise<User[]> {
+    // Kiểm tra nếu query trống hoặc chỉ có khoảng trắng
+    if (!query.trim()) {
+      return [];
+    }
+
+    // Lấy danh sách các friend của người dùng
+    const friends = await this.friendRepository.find({
+      where: [{ user1: { id: userId } }, { user2: { id: userId } }],
+      relations: ['user1', 'user2'],
+    });
+
+    // Tạo danh sách các userIds từ danh sách friends
+    const userIds = new Set<string>();
+    friends.forEach((friend) => {
+      if (friend.user1.id !== userId) userIds.add(friend.user1.id);
+      if (friend.user2.id !== userId) userIds.add(friend.user2.id);
+    });
+    // Lấy danh sách người dùng từ userIds
+    const users = await this.userRepository.find({
+      where: {
+        id: In(Array.from(userIds)),
+        fullname: ILike(`%${query}%`),
+      },
+    });
+
+    return users;
   }
 }

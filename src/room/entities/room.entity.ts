@@ -12,13 +12,16 @@ import {
 @Entity()
 export class Room {
   @PrimaryGeneratedColumn()
-  id: string;
+  id: number;
 
   @Column()
   name: string;
 
   @Column({ default: true })
   isPublic: boolean;
+
+  @Column({ nullable: true })
+  img: string; 
 
   @ManyToMany(() => User, (user) => user.rooms)
   @JoinTable()
