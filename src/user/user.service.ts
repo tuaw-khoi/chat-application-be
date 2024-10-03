@@ -12,11 +12,16 @@ import { UpdateUserDto } from './dtos/update-user.dto';
 import { UserWithGoogleDto } from './dtos/user.dto';
 import { hash } from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
+import { FriendService } from 'src/friend/friend.service';
+import { ChatService } from 'src/chat/chat.service';
+import { RoomService } from 'src/room/room.service';
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private readonly friendService: FriendService,
+    private readonly roomService: RoomService,
   ) {}
   async refreshLogin(token: string): Promise<any> {
     try {
@@ -140,5 +145,42 @@ export class UserService {
       .where('user.fullname ILIKE :query', { query: `%${query}%` }) // Điều kiện tìm kiếm theo tên
       .take(15) // Giới hạn kết quả
       .getMany();
+  }
+
+  async searchUser(query: string, userId: string): Promise<any> {
+    const getuser = await this.usersRepository.findOne({
+      where: [{ username: query }, { email: query }],
+    });
+    if (!getuser) {
+      return 'usernotfound';
+    }
+
+    // Gọi hàm kiểm tra quan hệ bạn bè
+    const areFriends = await this.friendService.checkFriendship(
+      userId,
+      getuser.id,
+    );
+
+    const userReturn = {
+      id: getuser.id,
+      fullname: getuser.fullname,
+      img: getuser.img,
+    };
+
+    if (areFriends) {
+      const getroom = await this.roomService.getRoomBetweenUsers(
+        userId,
+        userReturn.id,
+      ); // Giả sử bạn có hàm để tìm room giữa 2 người dùng
+      const room = {
+        roomId: getroom.commonRoom.id,
+        roomName: getroom.commonRoom.name,
+        roomImg: getroom.commonRoom.img,
+        latestMessage: getroom.latestMessage,
+      };
+      return { user: userReturn, room }; // Trả về cả user và room nếu là bạn bè
+    } else {
+      return { user: userReturn, room: null, message: 'Not friends yet' }; // Trả về user, nhưng room là null nếu không phải bạn bè
+    }
   }
 }

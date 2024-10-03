@@ -1,8 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
-
 
 @Controller('user')
 export class UserController {
@@ -31,5 +40,16 @@ export class UserController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.userService.remove(id);
+  }
+
+  @Post('searchNewFriend')
+  async searchUser(@Body() query: { query: string; userId: string }) {
+    if (!query) {
+      throw new NotFoundException('Query parameter is missing');
+    }
+
+    const result = await this.userService.searchUser(query.query, query.userId);
+
+    return result;
   }
 }

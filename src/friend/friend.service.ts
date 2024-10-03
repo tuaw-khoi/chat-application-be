@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike, In } from 'typeorm';
 import { Friend } from './entities/friend.entity';
 import { User } from 'src/user/entities/user.entity';
+import { Room } from 'src/room/entities/room.entity';
 
 @Injectable()
 export class FriendService {
@@ -11,9 +12,11 @@ export class FriendService {
     private friendRepository: Repository<Friend>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Room)
+    private roomRepository: Repository<Room>,
   ) {}
 
-  async getFriends(userId: string): Promise<Friend[]> {
+  async getFriend(userId: string): Promise<Friend[]> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
       relations: ['friends'],
@@ -63,5 +66,43 @@ export class FriendService {
     });
 
     return users;
+  }
+
+  async getAllFriends(userId: string): Promise<any[]> {
+    const friends = await this.friendRepository.find({
+      where: [{ user1: { id: userId } }, { user2: { id: userId } }],
+      relations: ['user1', 'user2'],
+    });
+
+    const friendsData = await Promise.all(
+      friends.map(async (friend) => {
+        const friendUser =
+          friend.user1.id === userId ? friend.user2 : friend.user1;
+        // Kiểm tra nếu có room chứa cả userId và friendUser.id
+        const room = await this.roomRepository
+          .createQueryBuilder('room')
+          .where('room.isPublic = false') // Kiểm tra phòng không công khai
+          .andWhere('(room.name LIKE :name1 OR room.name LIKE :name2)', {
+            name1: `%${userId}_${friendUser.id}%`,
+            name2: `%${friendUser.id}_${userId}%`,
+          })
+          .getOne();
+
+        return {
+          id: friendUser.id,
+          fullname: friendUser.fullname,
+          img: friendUser.img,
+          room: room
+            ? {
+                roomName: friendUser.fullname,
+                roomId: room.id,
+                roomImg: friendUser.img,
+              }
+            : null,
+        };
+      }),
+    );
+
+    return friendsData;
   }
 }

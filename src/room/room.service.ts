@@ -32,7 +32,7 @@ export class RoomService {
     return this.roomRepository.save(room);
   }
 
-  async addUserToRoom( userId: string,roomId: number): Promise<void> {
+  async addUserToRoom(userId: string, roomId: number): Promise<void> {
     const room = await this.roomRepository.findOne({
       where: { id: roomId },
       relations: ['users'],
@@ -98,5 +98,48 @@ export class RoomService {
       relations: ['sender'],
       order: { sent_at: 'ASC' },
     });
+  }
+
+  async getRoomBetweenUsers(userId1: string, userId2: string) {
+    if (!userId1 || !userId2) {
+      throw new Error('User IDs must be provided');
+    }
+
+    const user1 = await this.userRepository.findOne({
+      where: { id: userId1 },
+      relations: ['rooms'],
+    });
+
+    const user2 = await this.userRepository.findOne({
+      where: { id: userId2 },
+      relations: ['rooms'],
+    });
+    if (!user1 || !user2) {
+      throw new NotFoundException('One or both users not found');
+    }
+
+    const user1Rooms = user1.rooms;
+    const user2Rooms = user2.rooms;
+
+    const commonRoom = user1Rooms.find((room) =>
+      user2Rooms.some((r) => r.id === room.id && !room.isPublic),
+    );
+
+    if (!commonRoom) {
+      throw new NotFoundException(
+        'No common private room found between these users',
+      );
+    }
+
+    const latestMessage = this.MessageRepository.findOne({
+      where: { room: { id: commonRoom.id } },
+      order: { sent_at: 'DESC' },
+    });
+
+    if (!commonRoom) {
+      throw new NotFoundException('No common room found between these users');
+    }
+    const room = { commonRoom, latestMessage };
+    return room;
   }
 }

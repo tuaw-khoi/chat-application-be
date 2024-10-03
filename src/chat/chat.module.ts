@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ChatService } from './chat.service';
 import { MessageService } from 'src/message/message.service';
@@ -12,6 +12,7 @@ import { RoomModule } from 'src/room/room.module'; // Nhập khẩu RoomModule
 import { FriendModule } from 'src/friend/friend.module'; // Nhập khẩu FriendModule nếu cần
 import { Friend } from 'src/friend/entities/friend.entity';
 import { ChatController } from './chat.controller'; // Nhập khẩu ChatController
+import { UserModule } from 'src/user/user.module';
 
 @Module({
   imports: [
@@ -19,6 +20,8 @@ import { ChatController } from './chat.controller'; // Nhập khẩu ChatControl
     MessageModule,
     RoomModule,
     FriendModule,
+    MessageModule,
+    forwardRef(() => UserModule),
   ],
   providers: [ChatService, MessageService, RoomService, FriendService],
   controllers: [ChatController],

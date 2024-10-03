@@ -10,7 +10,6 @@ import {
 import { Server, Socket } from 'socket.io';
 import { ChatService } from 'src/chat/chat.service';
 import { FriendService } from 'src/friend/friend.service';
-import { UserService } from 'src/user/user.service';
 
 @WebSocketGateway({
   cors: {

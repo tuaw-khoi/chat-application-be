@@ -104,7 +104,7 @@ export class ChatService {
 
         // Nếu là phòng private (isPublic = false)
         if (!room.isPublic) {
-          // Giả định room.name chứa 2 userId ngăn cách bằng dấu "-"
+          // Giả định room.name chứa 2 userId ngăn cách bằng dấu "_"
           const userIds = room.name.split('_');
 
           // Loại bỏ userId trùng với userId được nhận
@@ -133,9 +133,18 @@ export class ChatService {
           roomId: room.id,
           roomImg: roomImg,
           latestMessage: latestMessage ? latestMessage.content : null,
+          sentAt: latestMessage ? latestMessage.sent_at : null, // Thêm thời gian gửi tin nhắn
         };
       }),
     );
+
+    // Sắp xếp danh sách phòng theo thời gian tin nhắn mới nhất (sentAt)
+    roomsWithMessages.sort((a, b) => {
+      if (a.sentAt && b.sentAt) {
+        return new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime(); // Sắp xếp giảm dần theo thời gian
+      }
+      return 0;
+    });
 
     return roomsWithMessages;
   }

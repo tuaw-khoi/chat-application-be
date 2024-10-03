@@ -22,8 +22,7 @@ export class User {
 
   @Column({ nullable: true })
   fullname: string;
-
-  @Column()
+  @Column({ unique: true })
   email: string;
 
   @Column({ nullable: true }) // Để password có thể null trong trường hợp đăng nhập bằng Google
