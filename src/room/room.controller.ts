@@ -1,7 +1,7 @@
 import { Controller, Post, Body, Get, Param } from '@nestjs/common';
 import { RoomService } from './room.service';
 import { CreateRoomDto } from './dtos/create-room.dto';
-import { JoinRoomDto } from './dtos/join-room.dto';
+import { createPrivateRoom } from './dtos/createPrivateRoom.dto';
 
 @Controller('rooms')
 export class RoomController {
@@ -12,41 +12,51 @@ export class RoomController {
     return this.roomService.createRoom(createRoomDto);
   }
 
-  @Post(':roomId/join')
-  async join(
-    @Param('roomId') roomId: number,
-    @Body() joinRoomDto: JoinRoomDto,
-  ) {
-    return this.roomService.addUserToRoom( joinRoomDto.userId,roomId);
+  @Post('private-room')
+  async createPrivateRoom(@Body() createPrivateRoomDto: createPrivateRoom) {
+    return this.roomService.createPrivateRoom(createPrivateRoomDto);
   }
 
-  @Post(':roomId/leave')
-  async leave(
-    @Param('roomId') roomId: number,
-    @Body() joinRoomDto: JoinRoomDto,
-  ) {
-    return this.roomService.removeUserFromRoom(roomId,joinRoomDto.userId);
+  @Get('public')
+  async findPublicRooms() {
+    return this.roomService.findPublicRooms();
   }
 
-  @Get()
-  async findAll() {
-    return this.roomService.findAllRooms();
-  }
+  // @Post(':roomId/join')
+  // async join(
+  //   @Param('roomId') roomId: number,
+  //   @Body() joinRoomDto: JoinRoomDto,
+  // ) {
+  //   return this.roomService.addUserToRoom(joinRoomDto.userId, roomId);
+  // }
 
-  @Get(':id')
-  async findOne(@Param('id') id: number) {
-    return this.roomService.findOneRoom(id);
-  }
+  // @Post(':roomId/leave')
+  // async leave(
+  //   @Param('roomId') roomId: number,
+  //   @Body() joinRoomDto: JoinRoomDto,
+  // ) {
+  //   return this.roomService.removeUserFromRoom(roomId, joinRoomDto.userId);
+  // }
 
-  @Get(':userId')
-  async getUserRooms(@Param('userId') userId: string) {
-    const rooms = await this.roomService.getUserRooms(userId);
-    return rooms;
-  }
+  // @Get()
+  // async findAll() {
+  //   return this.roomService.findAllRooms();
+  // }
 
-  @Get(':roomId/messages')
-  async getRoomMessages(@Param('roomId') roomId: number) {
-    const messages = await this.roomService.getRoomMessages(roomId);
-    return messages;
-  }
+  // @Get(':id')
+  // async findOne(@Param('id') id: number) {
+  //   return this.roomService.findOneRoom(id);
+  // }
+
+  // @Get(':userId')
+  // async getUserRooms(@Param('userId') userId: string) {
+  //   const rooms = await this.roomService.getUserRooms(userId);
+  //   return rooms;
+  // }
+
+  // @Get(':roomId/messages')
+  // async getRoomMessages(@Param('roomId') roomId: number) {
+  //   const messages = await this.roomService.getRoomMessages(roomId);
+  //   return messages;
+  // }
 }

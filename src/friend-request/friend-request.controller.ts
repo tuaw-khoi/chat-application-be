@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Param, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  Patch,
+  Get,
+  Query,
+  BadRequestException,
+} from '@nestjs/common';
 import { FriendRequestService } from './friend-request.service';
 
 @Controller('friend-requests')
@@ -11,6 +20,14 @@ export class FriendRequestController {
     @Body('receiverId') receiverId: string,
   ) {
     return this.friendRequestService.sendFriendRequest(senderId, receiverId);
+  }
+
+  @Get('/pending') // Thêm endpoint rõ ràng hơn, ví dụ 'pending'
+  async getPendingFriendRequests(@Query('userId') userId: string) {
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+    return this.friendRequestService.getPendingFriendRequests(userId);
   }
 
   @Patch(':id')

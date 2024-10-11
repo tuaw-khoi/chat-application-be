@@ -13,10 +13,19 @@ import { FriendModule } from 'src/friend/friend.module'; // Nhập khẩu Friend
 import { Friend } from 'src/friend/entities/friend.entity';
 import { ChatController } from './chat.controller'; // Nhập khẩu ChatController
 import { UserModule } from 'src/user/user.module';
+import { RoomUser } from 'src/room/entities/roomUser.entity';
+import { FriendRequest } from 'src/friend-request/entities/friendRequest.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Message, User, Room, Friend]),
+    TypeOrmModule.forFeature([
+      Message,
+      User,
+      Room,
+      Friend,
+      RoomUser,
+      FriendRequest,
+    ]),
     MessageModule,
     RoomModule,
     FriendModule,

@@ -11,6 +11,7 @@ import { FriendRequest } from 'src/friend-request/entities/friendRequest.entity'
 import { Friend } from 'src/friend/entities/friend.entity';
 import { Message } from 'src/message/entities/message.entity';
 import { Room } from 'src/room/entities/room.entity';
+import { RoomUser } from 'src/room/entities/roomUser.entity';
 
 @Entity()
 export class User {
@@ -44,8 +45,8 @@ export class User {
   @UpdateDateColumn()
   updated_at: Date;
 
-  @ManyToMany(() => Room, (room) => room.users)
-  rooms: Room[];
+  @OneToMany(() => RoomUser, (roomUser) => roomUser.user)
+  roomUsers: RoomUser[]; 
 
   @OneToMany(() => Message, (message) => message.sender)
   messages: Message[];

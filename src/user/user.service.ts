@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -13,8 +14,9 @@ import { UserWithGoogleDto } from './dtos/user.dto';
 import { hash } from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { FriendService } from 'src/friend/friend.service';
-import { ChatService } from 'src/chat/chat.service';
 import { RoomService } from 'src/room/room.service';
+import { FriendRequest } from 'src/friend-request/entities/friendRequest.entity';
+
 @Injectable()
 export class UserService {
   constructor(
@@ -22,7 +24,8 @@ export class UserService {
     private usersRepository: Repository<User>,
     private readonly friendService: FriendService,
     private readonly roomService: RoomService,
-  ) {}
+  ) {
+  }
   async refreshLogin(token: string): Promise<any> {
     try {
       const jwtObject: any = jwt.verify(token, 'secret');
@@ -148,11 +151,17 @@ export class UserService {
   }
 
   async searchUser(query: string, userId: string): Promise<any> {
+    // Tìm người dùng dựa trên username hoặc email
     const getuser = await this.usersRepository.findOne({
       where: [{ username: query }, { email: query }],
     });
+    // Nếu không tìm thấy người dùng
     if (!getuser) {
-      return 'usernotfound';
+      return { message: 'usernotfound' };
+    }
+
+    if (getuser.id === userId) {
+      return { message: 'usernotfound' };
     }
 
     // Gọi hàm kiểm tra quan hệ bạn bè
@@ -161,26 +170,48 @@ export class UserService {
       getuser.id,
     );
 
+    // Chuẩn bị dữ liệu người dùng trả về
     const userReturn = {
       id: getuser.id,
       fullname: getuser.fullname,
       img: getuser.img,
     };
 
+    // const sentRequest =
+    //   await this.friendRequestService.findPendingRequestByUsers(
+    //     getuser.id,
+    //     userId,
+    //   );
+
+    // Nếu hai người là bạn bè, tìm room chung
     if (areFriends) {
+      // Gọi hàm tìm room chung giữa hai người dùng
       const getroom = await this.roomService.getRoomBetweenUsers(
         userId,
         userReturn.id,
-      ); // Giả sử bạn có hàm để tìm room giữa 2 người dùng
-      const room = {
-        roomId: getroom.commonRoom.id,
-        roomName: getroom.commonRoom.name,
-        roomImg: getroom.commonRoom.img,
-        latestMessage: getroom.latestMessage,
-      };
-      return { user: userReturn, room }; // Trả về cả user và room nếu là bạn bè
+      );
+
+      // Kiểm tra nếu room tồn tại
+      if (getroom && getroom.commonRoom) {
+        const room = {
+          roomId: getroom.commonRoom.id,
+          roomName: userReturn.fullname,
+          roomImg: getroom.commonRoom.img || '',
+          latestMessage: getroom.latestMessage || '',
+        };
+
+        return { user: userReturn, room, message: 'Friends' };
+      } else {
+        // Nếu không tìm thấy room chung dù là bạn bè
+        return {
+          user: userReturn,
+          room: null,
+          message: 'Friends but no room found',
+        };
+      }
     } else {
-      return { user: userReturn, room: null, message: 'Not friends yet' }; // Trả về user, nhưng room là null nếu không phải bạn bè
+      // Trả về thông tin người dùng nhưng room là null nếu không phải bạn bè
+      return { user: userReturn, room: null, message: 'Not friends yet' };
     }
   }
 }

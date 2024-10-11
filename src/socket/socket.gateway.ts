@@ -38,9 +38,9 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody()
     data: {
       content: string;
-      roomId?: number;
+      roomId?: string;
       senderId: string;
-      reciveId?: string;
+      receiveId?: string;
     },
   ) {
     try {
@@ -48,14 +48,14 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
         throw new Error('Content of the message cannot be empty');
       }
       let roomId = data.roomId;
-      if (roomId === undefined && data.reciveId) {
+      if (roomId === undefined && data.receiveId) {
         const room = await this.chatService.createRoomForUsers(
           data.senderId,
-          data.reciveId,
+          data.receiveId,
         );
-        roomId = room.id;
-
-        client.emit('newroomId', roomId);
+        roomId = room.roomId;
+        this.server.to(client.id).emit('newroomId', room);
+        this.server.to(data.receiveId).emit('newroomId', roomId);
       }
 
       if (roomId === undefined) {
@@ -67,6 +67,8 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data.senderId,
         data.content,
       );
+
+
       this.server.to(roomId.toString()).emit('newMessage', message);
     } catch (error) {
       client.emit('errorNewChat', { message: 'Failed to send message', error });
@@ -100,38 +102,53 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(`Client ${client.id} left room ${roomId}`);
   }
 
-  @SubscribeMessage('searchFriends')
+  @SubscribeMessage('searchChats')
   async handleSearchFriends(
     @MessageBody() data: { query: string; userId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const { query, userId } = data;
+
     if (query.trim() === '') {
-      client.emit('searchFriendsResult', []);
+      client.emit('searchChatsResult', []);
       return;
     }
 
     // Tìm kiếm bạn bè dựa trên query
     const friends = await this.friendService.searchFriends(query, userId);
-    // Lấy danh sách bạn bè và kiểm tra xem có phòng giữa user và bạn đó không
-    const friendsReturn = await Promise.all(
+
+    // Kiểm tra xem đã có phòng với bạn bè chưa và gom lại
+    const friendsWithRooms = await Promise.all(
       friends.map(async (friend) => {
-        // Kiểm tra xem đã có room giữa user và friend chưa
         const room = await this.chatService.checkRoomForUsers(
           userId,
           friend.id,
         );
-
         return {
           id: friend.id,
-          fullname: friend.fullname,
+          fullname: friend.fullname, // Dùng 'name' thay vì 'fullname' để đồng nhất với room
           img: friend.img,
-          roomId: room ? room.id : null, // Nếu đã có room, gửi kèm roomId
+          roomId: room ? room.id : null, // Nếu có phòng, trả về roomId
+          type: 'friend', // Đánh dấu là friend
         };
       }),
     );
 
+    // Lấy danh sách các phòng mà user đã tham gia và tên phòng khớp với query
+    const userRooms = await this.chatService.getUserRooms(userId, query);
+
+    // Định dạng các phòng với cấu trúc tương tự friend
+    const formattedRooms = userRooms.map((room) => ({
+      id: room.id,
+      fullname: room.name, // Sử dụng 'name' để khớp với friend
+      img: room.img, // Phòng không có img nên để null
+      roomId: room.id, // roomId chính là id của phòng
+      type: 'room', // Đánh dấu là room
+    }));
+
+    // Gom bạn bè và phòng vào chung một mảng
+    const searchResults = [...friendsWithRooms, ...formattedRooms];
     // Trả kết quả về client
-    client.emit('searchFriendsResult', friendsReturn);
+    client.emit('searchChatsResult', searchResults);
   }
 }

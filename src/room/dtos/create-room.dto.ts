@@ -1,13 +1,25 @@
-import { IsString, IsBoolean, IsArray } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export class CreateRoomDto {
   @IsString()
+  @IsNotEmpty()
   name: string;
 
   @IsBoolean()
-  isPublic: boolean;
+  @IsOptional()
+  isPublic: boolean = false;
 
   @IsArray()
-  @IsString({ each: true })
-  admins: string[];
+  @IsUUID('4', { each: true }) // Mảng UUID của các thành viên trong phòng
+  members: string[];
+
+  @IsUUID('4', { each: true })
+  userId: string;
 }

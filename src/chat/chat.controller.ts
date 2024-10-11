@@ -7,7 +7,7 @@ export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Get('/:userId/rooms')
-  async getRoomsForUser(@Param('userId') userId: string): Promise<Room[]> {
+  async getRoomsForUser(@Param('userId') userId: string): Promise<any[]> {
     return this.chatService.getRoomsForUser(userId);
   }
 }

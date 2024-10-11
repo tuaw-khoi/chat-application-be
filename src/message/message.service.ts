@@ -9,14 +9,14 @@ export class MessageService {
     @InjectRepository(Message)
     private messageRepository: Repository<Message>,
   ) {}
-  async getLatestMessageInRoom(roomId: number): Promise<Message> {
+  async getLatestMessageInRoom(roomId: string): Promise<Message | null> {
     return this.messageRepository.findOne({
       where: { room: { id: roomId } },
       order: { sent_at: 'DESC' },
     });
   }
 
-  async createMessage(senderId: string, roomId: number, content: string) {
+  async createMessage(senderId: string, roomId: string, content: string) {
     const message = this.messageRepository.create({
       sender: { id: senderId },
       room: { id: roomId },
@@ -25,17 +25,21 @@ export class MessageService {
     return await this.messageRepository.save(message);
   }
 
-  async countMessages(senderId: string, roomId: number): Promise<number> {
-    return await this.messageRepository.count({
-      where: { sender: { id: senderId }, room: { id: roomId } },
-    });
-  }
-
-  async getMessagesByRoom(roomId: number) {
-    const mess = this.messageRepository.find({
+  async getMessagesByRoom(roomId: string) {
+    const mess = await this.messageRepository.find({
       where: { room: { id: roomId } },
       order: { sent_at: 'ASC' },
+      relations: ['sender'],
     });
-    return mess;
+    if (!mess) {
+      return null;
+    }
+
+    const returnMess = mess?.map((message) => ({
+      id: message.id,
+      content: message.content,
+      senderId: message.sender.id,
+    }));
+    return returnMess;
   }
 }

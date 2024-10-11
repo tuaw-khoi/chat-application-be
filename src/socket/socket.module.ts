@@ -14,6 +14,7 @@ import { User } from 'src/user/entities/user.entity';
     MessageModule,
     RoomModule,
     FriendModule,
+    
   ],
   providers: [SocketGateway, ChatService, UserService],
 })

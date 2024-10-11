@@ -16,7 +16,7 @@ export class MessageController {
   }
 
   @Get(':roomId')
-  async getMessages(@Param('roomId') roomId: number) {
+  async getMessages(@Param('roomId') roomId: string) {
     return this.messageService.getMessagesByRoom(roomId);
   }
 }

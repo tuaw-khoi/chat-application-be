@@ -11,6 +11,8 @@ import { Room } from 'src/room/entities/room.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { FriendRequest } from 'src/friend-request/entities/friendRequest.entity';
+import { FriendRequestService } from 'src/friend-request/friend-request.service';
 
 @Injectable()
 export class ChatService {
@@ -22,74 +24,84 @@ export class ChatService {
     private userRepository: Repository<User>,
   ) {}
 
-  async joinRoom(userId: string, roomId: number): Promise<void> {
-    const room = await this.roomService.findOneRoom(roomId);
-    if (!room) {
-      throw new NotFoundException('Room not found');
-    }
-    await this.roomService.addUserToRoom(userId, roomId);
-  }
+  // async joinRoom(userId: string, roomId: number): Promise<void> {
+  //   const room = await this.roomService.findOneRoom(roomId);
+  //   if (!room) {
+  //     throw new NotFoundException('Room not found');
+  //   }
+  //   await this.roomService.addUserToRoom(userId, roomId);
+  // }
 
-  async leaveRoom(userId: string, roomId: number): Promise<void> {
-    await this.roomService.removeUserFromRoom(roomId, userId);
-  }
+  // async leaveRoom(userId: string, roomId: number): Promise<void> {
+  //   await this.roomService.removeUserFromRoom(roomId, userId);
+  // }
 
-  async createRoomForUsers(senderId: string, reciveId: string): Promise<Room> {
-    const newRoom = await this.roomService.createRoom({
-      name: `${senderId}_${reciveId}`,
-      isPublic: false,
-      admins: [senderId, reciveId],
+  async createRoomForUsers(
+    senderId: string,
+    receiverId: string,
+  ): Promise<{
+    roomName: string;
+    roomId: string;
+    roomImg: string;
+  }> {
+    const newRoom = await this.roomService.createPrivateRoom({
+      senderId,
+      receiverId,
     });
-    return newRoom;
+
+    const otherUser = await this.userRepository.findOne({
+      where: { id: receiverId },
+    });
+
+    if (otherUser) {
+      const roomName = otherUser.fullname || 'Unknown User';
+      const roomImg = otherUser.img || null;
+
+      const returnRoom = {
+        roomName: roomName,
+        roomId: newRoom.id,
+        roomImg: roomImg,
+      };
+      return returnRoom;
+    }
   }
 
   async createMessage(
-    roomId: number,
+    roomId: string,
     senderId: string,
     content: string,
   ): Promise<Message> {
-    const id = roomId;
-    const room = await this.roomService.findOneRoom(id);
+    const room = await this.roomService.findOneRoom(roomId);
+
     if (!room) {
       throw new NotFoundException('Room not found');
     }
-    const admins = room.admins;
-    const reciveId = admins.find((adminId) => adminId.id !== senderId);
 
-    if (!reciveId) {
-      throw new BadRequestException('Invalid room admins');
-    }
-    const isFriend = await this.friendService.checkFriendship(
-      senderId,
-      reciveId.id,
-    );
-    if (!isFriend) {
-      const sentMessagesCount = await this.messageService.countMessages(
-        senderId,
-        roomId,
-      );
-      if (sentMessagesCount >= 3) {
+    const memberIds = room.roomUsers.map((ru) => ru.user.id);
+
+    if (room.isPublic) {
+      if (!memberIds.includes(senderId)) {
         throw new BadRequestException(
-          'You can only send 3 messages if you are not friends',
+          'You must be a member of the room to send a message',
         );
       }
     }
 
+    // Tạo tin nhắn
     return await this.messageService.createMessage(senderId, roomId, content);
   }
-
   async getRoomsForUser(userId: string): Promise<any[]> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      relations: ['rooms'],
+      relations: ['roomUsers', 'roomUsers.room'],
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    // Lấy tất cả các phòng của người dùng
-    const rooms = user.rooms;
+    // Lấy tất cả các phòng mà user đã tham gia
+    const rooms = user.roomUsers.map((roomUser) => roomUser.room);
 
     // Lấy tin nhắn gần nhất trong từng phòng
     const roomsWithMessages = await Promise.all(
@@ -102,30 +114,29 @@ export class ChatService {
         let roomName: string;
         let roomImg: string;
 
-        // Nếu là phòng private (isPublic = false)
+        // Nếu phòng là private (isPublic = false), đặt tên dựa trên user khác trong phòng
         if (!room.isPublic) {
           // Giả định room.name chứa 2 userId ngăn cách bằng dấu "_"
           const userIds = room.name.split('_');
 
-          // Loại bỏ userId trùng với userId được nhận
+          // Loại bỏ userId trùng với userId hiện tại
           const otherUserId = userIds.find((id) => id !== userId);
 
           if (otherUserId) {
-            // Tìm thông tin của người dùng còn lại
+            // Tìm thông tin của người dùng còn lại trong phòng
             const otherUser = await this.userRepository.findOne({
               where: { id: otherUserId },
             });
 
             if (otherUser) {
-              // Tên phòng là tên của người dùng còn lại và ảnh đại diện của họ
-              roomName = otherUser.fullname;
-              roomImg = otherUser.img || null; // Nếu ảnh đại diện của user còn lại tồn tại
+              roomName = otherUser.fullname || 'Unknown User';
+              roomImg = otherUser.img || null;
             }
           }
         } else {
-          // Nếu là phòng public
+          // Nếu là phòng public, lấy tên phòng và ảnh đại diện phòng
           roomName = room.name;
-          roomImg = room.img || null; // Ảnh đại diện của phòng public
+          roomImg = room.img || null;
         }
 
         return {
@@ -133,7 +144,7 @@ export class ChatService {
           roomId: room.id,
           roomImg: roomImg,
           latestMessage: latestMessage ? latestMessage.content : null,
-          sentAt: latestMessage ? latestMessage.sent_at : null, // Thêm thời gian gửi tin nhắn
+          sentAt: latestMessage ? latestMessage.sent_at : null, // Thời gian gửi tin nhắn
         };
       }),
     );
@@ -149,35 +160,66 @@ export class ChatService {
     return roomsWithMessages;
   }
 
-  async checkRoomForUsers(userId1: string, userId2: string): Promise<any> {
-    // Tìm tất cả các phòng mà userId1 đang tham gia
-    const user1Rooms = await this.userRepository.findOne({
+  async checkRoomForUsers(
+    userId1: string,
+    userId2: string,
+  ): Promise<Room | null> {
+    // Lấy thông tin phòng của userId1
+    const user1 = await this.userRepository.findOne({
       where: { id: userId1 },
-      relations: ['rooms'],
+      relations: ['roomUsers', 'roomUsers.room'],
     });
 
-    if (!user1Rooms) {
+    if (!user1) {
       throw new NotFoundException('User 1 not found');
     }
 
-    // Lấy danh sách các roomId mà userId1 đang tham gia
-    const roomIdsForUser1 = user1Rooms.rooms.map((room) => room.id);
-
-    // Tìm userId2 và xem user này có trong các phòng của userId1 không
+    // Lấy thông tin phòng của userId2
     const user2 = await this.userRepository.findOne({
       where: { id: userId2 },
-      relations: ['rooms'],
+      relations: ['roomUsers', 'roomUsers.room'],
     });
 
     if (!user2) {
       throw new NotFoundException('User 2 not found');
     }
 
-    // Kiểm tra xem có phòng nào giữa userId1 và userId2 không
-    const commonRoom = user2.rooms.find((room) =>
-      roomIdsForUser1.includes(room.id),
+    // Kiểm tra xem có phòng chung giữa hai người dùng không
+    const commonRoom = user1.roomUsers.find((roomUser1) =>
+      user2.roomUsers.some(
+        (roomUser2) =>
+          roomUser2.room.id === roomUser1.room.id && !roomUser1.room.isPublic, // Kiểm tra isPublic là false
+      ),
     );
 
-    return commonRoom || null;
+    return commonRoom ? commonRoom.room : null; // Trả về phòng hoặc null
+  }
+
+  async getUserRooms(userId: string, query: string): Promise<Room[]> {
+    // Lấy tất cả các phòng mà userId đã tham gia
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['roomUsers', 'roomUsers.room'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Sử dụng Set để loại bỏ các phòng trùng lặp
+    const roomMap = new Map<string, Room>();
+
+    user.roomUsers.forEach((roomUser) => {
+      const room = roomUser.room;
+
+      if (
+        room.name.toLowerCase().includes(query.toLowerCase()) &&
+        !roomMap.has(room.id)
+      ) {
+        roomMap.set(room.id, room);
+      }
+    });
+
+    return Array.from(roomMap.values());
   }
 }

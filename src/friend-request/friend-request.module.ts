@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FriendRequestService } from './friend-request.service';
 import { FriendRequestController } from './friend-request.controller';
@@ -14,6 +14,6 @@ import { Friend } from 'src/friend/entities/friend.entity';
   ],
   controllers: [FriendRequestController],
   providers: [FriendRequestService],
-  exports: [FriendRequestService], // Exporting service if needed in other modules
+  exports: [FriendRequestService],
 })
 export class FriendRequestModule {}

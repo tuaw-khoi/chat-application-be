@@ -10,16 +10,19 @@ import { UserModule } from 'src/user/user.module';
 import { MessageModule } from 'src/message/message.module';
 import { FriendModule } from 'src/friend/friend.module';
 import { Friend } from 'src/friend/entities/friend.entity';
+import { RoomUser } from './entities/roomUser.entity';
+import { FriendRequestModule } from 'src/friend-request/friend-request.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Room, User, Message, Friend]),
-    forwardRef(() => UserModule),  // Sử dụng forwardRef nếu có vòng lặp phụ thuộc
+    TypeOrmModule.forFeature([Room, User, Message, Friend, RoomUser]),
+    forwardRef(() => UserModule), // Sử dụng forwardRef nếu có vòng lặp phụ thuộc
     FriendModule,
     MessageModule,
+    FriendRequestModule,
   ],
   providers: [RoomService, UserService],
   controllers: [RoomController],
-  exports: [RoomService], // Export RoomService if needed elsewhere
+  exports: [RoomService],
 })
 export class RoomModule {}

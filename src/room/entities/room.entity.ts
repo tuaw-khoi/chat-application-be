@@ -1,35 +1,35 @@
-import { Message } from 'src/message/entities/message.entity';
-import { User } from 'src/user/entities/user.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
   OneToMany,
-  JoinTable,
 } from 'typeorm';
-
+import { Message } from 'src/message/entities/message.entity';
+import { RoomUser } from './roomUser.entity';
 @Entity()
 export class Room {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   name: string;
 
-  @Column({ default: true })
+  @Column({ default: false })
   isPublic: boolean;
 
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
   @Column({ nullable: true })
-  img: string; 
+  img: string | null;
 
-  @ManyToMany(() => User, (user) => user.rooms)
-  @JoinTable()
-  users: User[];
-
-  @ManyToMany(() => User, (user) => user.rooms)
-  @JoinTable()
-  admins: User[];
+  @OneToMany(() => RoomUser, (roomUser) => roomUser.room)
+  roomUsers: RoomUser[];
 
   @OneToMany(() => Message, (message) => message.room)
   messages: Message[];

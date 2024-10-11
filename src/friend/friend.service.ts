@@ -5,6 +5,7 @@ import { Friend } from './entities/friend.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Room } from 'src/room/entities/room.entity';
 
+
 @Injectable()
 export class FriendService {
   constructor(
@@ -40,28 +41,29 @@ export class FriendService {
   }
 
   async searchFriends(query: string, userId: string): Promise<User[]> {
-    // Kiểm tra nếu query trống hoặc chỉ có khoảng trắng
+    // Nếu query trống hoặc chỉ có khoảng trắng, trả về mảng rỗng
     if (!query.trim()) {
       return [];
     }
 
-    // Lấy danh sách các friend của người dùng
+    // Lấy danh sách bạn bè (cả user1 và user2) của người dùng
     const friends = await this.friendRepository.find({
       where: [{ user1: { id: userId } }, { user2: { id: userId } }],
       relations: ['user1', 'user2'],
     });
 
-    // Tạo danh sách các userIds từ danh sách friends
+    // Lấy danh sách userId từ bạn bè
     const userIds = new Set<string>();
     friends.forEach((friend) => {
       if (friend.user1.id !== userId) userIds.add(friend.user1.id);
       if (friend.user2.id !== userId) userIds.add(friend.user2.id);
     });
-    // Lấy danh sách người dùng từ userIds
+
+    // Tìm kiếm user trong danh sách bạn bè dựa theo query
     const users = await this.userRepository.find({
       where: {
         id: In(Array.from(userIds)),
-        fullname: ILike(`%${query}%`),
+        fullname: ILike(`%${query}%`), // Tìm kiếm theo tên đầy đủ khớp với query
       },
     });
 
@@ -81,10 +83,10 @@ export class FriendService {
         // Kiểm tra nếu có room chứa cả userId và friendUser.id
         const room = await this.roomRepository
           .createQueryBuilder('room')
-          .where('room.isPublic = false') // Kiểm tra phòng không công khai
-          .andWhere('(room.name LIKE :name1 OR room.name LIKE :name2)', {
-            name1: `%${userId}_${friendUser.id}%`,
-            name2: `%${friendUser.id}_${userId}%`,
+          .where('room.isPublic = false') // Phòng không công khai
+          .andWhere('(room.name = :name1 OR room.name = :name2)', {
+            name1: `${userId}_${friendUser.id}`,
+            name2: `${friendUser.id}_${userId}`,
           })
           .getOne();
 
@@ -103,6 +105,12 @@ export class FriendService {
       }),
     );
 
-    return friendsData;
+    const uniqueFriendsData = Array.from(
+      new Map(
+        friendsData.map((friend) => [friend.room?.roomId, friend]),
+      ).values(),
+    );
+
+    return uniqueFriendsData;
   }
 }
