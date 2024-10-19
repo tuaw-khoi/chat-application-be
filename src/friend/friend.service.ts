@@ -5,7 +5,6 @@ import { Friend } from './entities/friend.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Room } from 'src/room/entities/room.entity';
 
-
 @Injectable()
 export class FriendService {
   constructor(
@@ -112,5 +111,33 @@ export class FriendService {
     );
 
     return uniqueFriendsData;
+  }
+
+  async removeFriend(userId: string, friendId: string): Promise<void> {
+    // Tìm người dùng và bạn bè
+    const [user, friend] = await Promise.all([
+      this.userRepository.findOne({ where: { id: userId } }),
+      this.userRepository.findOne({ where: { id: friendId } }),
+    ]);
+
+    if (!user || !friend) {
+      throw new NotFoundException('User or friend not found');
+    }
+
+    // Kiểm tra xem có mối quan hệ bạn bè không
+    const friendship = await this.friendRepository.findOne({
+      where: [
+        { user1: { id: userId }, user2: { id: friendId } },
+        { user1: { id: friendId }, user2: { id: userId } },
+      ],
+      relations: ['user1', 'user2'], 
+    });
+
+    if (!friendship) {
+      throw new NotFoundException('Friendship does not exist');
+    }
+
+    // Xóa mối quan hệ bạn bè
+    await this.friendRepository.delete(friendship.id);
   }
 }

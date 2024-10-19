@@ -7,6 +7,7 @@ import {
   Get,
   Query,
   BadRequestException,
+  Delete,
 } from '@nestjs/common';
 import { FriendRequestService } from './friend-request.service';
 
@@ -36,5 +37,21 @@ export class FriendRequestController {
     @Body('status') status: 'accepted' | 'rejected',
   ) {
     return this.friendRequestService.respondToFriendRequest(requestId, status);
+  }
+
+  @Get('/status')
+  async checkFriendRequestStatus(
+    @Query('userId1') userId1: string,
+    @Query('userId2') userId2: string,
+  ) {
+    return this.friendRequestService.checkFriendRequestStatus(userId1, userId2);
+  }
+
+  @Delete(':userId/cancel-request/:friendId')
+  async cancelFriendRequest(
+    @Param('userId') userId: string,
+    @Param('friendId') friendId: string,
+  ) {
+    return this.friendRequestService.cancelFriendRequest(userId, friendId);
   }
 }

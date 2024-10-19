@@ -113,7 +113,7 @@ export class ChatService {
 
         let roomName: string;
         let roomImg: string;
-
+        let receiveId :string
         // Nếu phòng là private (isPublic = false), đặt tên dựa trên user khác trong phòng
         if (!room.isPublic) {
           // Giả định room.name chứa 2 userId ngăn cách bằng dấu "_"
@@ -131,6 +131,7 @@ export class ChatService {
             if (otherUser) {
               roomName = otherUser.fullname || 'Unknown User';
               roomImg = otherUser.img || null;
+              receiveId = otherUser.id || null
             }
           }
         } else {
@@ -144,7 +145,8 @@ export class ChatService {
           roomId: room.id,
           roomImg: roomImg,
           latestMessage: latestMessage ? latestMessage.content : null,
-          sentAt: latestMessage ? latestMessage.sent_at : null, // Thời gian gửi tin nhắn
+          sentAt: latestMessage ? latestMessage.sent_at : null,
+          receiveId,
         };
       }),
     );

@@ -102,15 +102,18 @@ export class FriendRequestService {
       return { message: 'Friend request rejected and removed' };
     }
 
-    await this.friendRequestRepository.save(friendRequest);
-
     // Nếu chấp nhận, tạo tình bạn
     if (status === 'accepted') {
       const { sender, receiver } = friendRequest;
       await this.createFriendship(sender, receiver);
+
+      // Xóa lời mời kết bạn sau khi tạo tình bạn
+      await this.friendRequestRepository.remove(friendRequest);
     }
 
-    return friendRequest;
+    return {
+      message: 'Friend request accepted and removed after creating friendship',
+    };
   }
 
   async createFriendship(user1: User, user2: User) {
@@ -157,5 +160,73 @@ export class FriendRequestService {
     return filteredRequests;
   }
 
- 
+  async checkFriendRequestStatus(userId1: string, userId2: string) {
+    // Kiểm tra xem hai người dùng đã là bạn bè hay chưa
+    const isFriend = await this.friendRepository.findOne({
+      where: [
+        { user1: { id: userId1 }, user2: { id: userId2 } },
+        { user1: { id: userId2 }, user2: { id: userId1 } },
+      ],
+    });
+
+    if (isFriend) {
+      return { status: 'isFriend' }; // Nếu đã là bạn bè, trả về trạng thái 'isFriend'
+    }
+
+    // Kiểm tra xem có lời mời kết bạn nào đang chờ xử lý giữa userId1 và userId2 hay không
+    const existingRequest = await this.friendRequestRepository.findOne({
+      where: [
+        {
+          sender: { id: userId1 },
+          receiver: { id: userId2 },
+        },
+        {
+          sender: { id: userId2 },
+          receiver: { id: userId1 },
+        },
+      ],
+    });
+
+    if (existingRequest) {
+      return { status: existingRequest.status }; // Trả về trạng thái của lời mời kết bạn (pending, accepted, rejected)
+    }
+
+    return { status: 'not_found' }; // Nếu không có lời mời kết bạn, trả về 'not_found'
+  }
+
+  async cancelFriendRequest(userId: string, friendId: string): Promise<void> {
+    // Kiểm tra xem người dùng có tồn tại không
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const friend = await this.userRepository.findOne({
+      where: { id: friendId },
+    });
+    if (!user || !friend) {
+      throw new NotFoundException('User or friend not found');
+    }
+
+    // Kiểm tra xem có lời mời kết bạn chưa
+    const requestExists = await this.friendRequestRepository.findOne({
+      where: [
+        {
+          sender: { id: userId },
+          receiver: { id: friendId },
+          status: 'pending',
+        },
+        {
+          sender: { id: friendId },
+          receiver: { id: userId },
+          status: 'pending',
+        },
+      ],
+    });
+
+    if (!requestExists) {
+      throw new NotFoundException(
+        'Friend request does not exist or is not pending',
+      );
+    }
+
+    // Xóa lời mời kết bạn
+    await this.friendRequestRepository.delete(requestExists.id);
+  }
 }

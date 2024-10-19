@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Room } from './entities/room.entity';
@@ -7,6 +12,7 @@ import { CreateRoomDto } from './dtos/create-room.dto';
 import { Message } from 'src/message/entities/message.entity';
 import { RoomUser } from './entities/roomUser.entity';
 import { createPrivateRoom } from './dtos/createPrivateRoom.dto';
+import { CreateGroupDto } from './dtos/CreateGroupRoom.dto';
 
 @Injectable()
 export class RoomService {
@@ -198,8 +204,6 @@ export class RoomService {
   }
 
   async getRoomBetweenUsers(userId1: string, userId2: string): Promise<any> {
-    console.log(userId1, userId2);
-
     // Tìm room có cả 2 người dùng trong danh sách roomUsers
     const commonRoom = await this.roomRepository
       .createQueryBuilder('room')
@@ -219,7 +223,7 @@ export class RoomService {
         .where('room.id = :roomId', { roomId: commonRoom.id })
         .orderBy('message.sent_at', 'DESC')
         .getOne();
-     
+
       // Trả về room và tin nhắn mới nhất
       return {
         commonRoom,
@@ -229,5 +233,75 @@ export class RoomService {
 
     // Nếu không tìm thấy room chung
     return null;
+  }
+
+  async createGroup(createGroupDto: CreateGroupDto): Promise<Room> {
+    // Kiểm tra xem creator có tồn tại không
+    const creator = await this.userRepository.findOne({
+      where: { id: createGroupDto.userId },
+    });
+
+    if (!creator) {
+      console.error(`Creator not found for userId: ${createGroupDto.userId}`);
+      throw new NotFoundException('Creator not found');
+    }
+
+    // Kiểm tra các thành viên
+    const members = await this.userRepository.findByIds(createGroupDto.members);
+
+    if (members.length !== createGroupDto.members.length) {
+      console.error(
+        `Members not found. Expected: ${createGroupDto.members.length}, Found: ${members.length}`,
+      );
+      throw new NotFoundException('One or more members not found');
+    }
+
+    // Kiểm tra tên nhóm
+    if (!createGroupDto.name || createGroupDto.name.trim().length === 0) {
+      console.error('Group name is required and cannot be empty');
+      throw new BadRequestException('Group name is required');
+    }
+
+    // Tạo phòng mới
+    const room = this.roomRepository.create({
+      name: createGroupDto.name,
+      isPublic: true, // Chắc chắn rằng isPublic được đặt là true
+      img: createGroupDto.img,
+    });
+
+    try {
+      const savedRoom = await this.roomRepository.save(room);
+      console.log(`Room created successfully with id: ${savedRoom.id}`);
+
+      // Tạo danh sách người dùng phòng
+      const roomUsers: RoomUser[] = [];
+
+      roomUsers.push(
+        this.roomUserRepository.create({
+          room: savedRoom,
+          user: creator,
+          isAdmin: true,
+        }),
+      );
+
+      for (const member of members) {
+        roomUsers.push(
+          this.roomUserRepository.create({
+            room: savedRoom,
+            user: member,
+            isAdmin: false,
+          }),
+        );
+      }
+
+      // Lưu người dùng phòng
+      await this.roomUserRepository.save(roomUsers);
+      console.log(`Room users added successfully for room id: ${savedRoom.id}`);
+
+      return savedRoom; // Trả về phòng đã được lưu
+    } catch (error) {
+      console.error('Error saving room or room users:', error);
+      throw new InternalServerErrorException('Error creating room');
+    }
   }
 }

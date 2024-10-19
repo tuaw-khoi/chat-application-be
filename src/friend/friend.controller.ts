@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Delete, Get, Param } from '@nestjs/common';
 import { FriendService } from './friend.service';
 
 @Controller('friends')
@@ -16,5 +16,13 @@ export class FriendController {
   @Get(':userId')
   async getAllFriends(@Param('userId') userId: string) {
     return this.friendService.getAllFriends(userId);
+  }
+
+  @Delete(':userId1/remove-friend/:userId2')
+  async removeFriend(
+    @Param('userId1') userId1: string,
+    @Param('userId2') userId2: string,
+  ) {
+    return this.friendService.removeFriend(userId1, userId2);
   }
 }

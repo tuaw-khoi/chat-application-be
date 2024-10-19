@@ -2,6 +2,7 @@ import { Controller, Post, Body, Get, Param } from '@nestjs/common';
 import { RoomService } from './room.service';
 import { CreateRoomDto } from './dtos/create-room.dto';
 import { createPrivateRoom } from './dtos/createPrivateRoom.dto';
+import { CreateGroupDto } from './dtos/CreateGroupRoom.dto';
 
 @Controller('rooms')
 export class RoomController {
@@ -20,6 +21,11 @@ export class RoomController {
   @Get('public')
   async findPublicRooms() {
     return this.roomService.findPublicRooms();
+  }
+
+  @Post('group')
+  async createGroup(@Body() createGroupDto: CreateGroupDto) {
+    return this.roomService.createGroup(createGroupDto);
   }
 
   // @Post(':roomId/join')
