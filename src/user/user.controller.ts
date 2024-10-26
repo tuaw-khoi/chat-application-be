@@ -8,10 +8,12 @@ import {
   Delete,
   Query,
   NotFoundException,
+  Put,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
+import { ChangePasswordDto } from './dtos/changepassword.dto';
 
 @Controller('user')
 export class UserController {
@@ -32,10 +34,6 @@ export class UserController {
     return this.userService.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(id, updateUserDto);
-  }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
@@ -51,5 +49,25 @@ export class UserController {
     const result = await this.userService.searchUser(query.query, query.userId);
 
     return result;
+  }
+
+  @Put(':id/profile')
+  async updateProfile(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return await this.userService.updateProfile(id, updateUserDto);
+  }
+
+  @Put(':id/change-password')
+  async changePassword(
+    @Param('id') id: string,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return await this.userService.changePassword(
+      id,
+      changePasswordDto.currentPassword,
+      changePasswordDto.newPassword,
+    );
   }
 }

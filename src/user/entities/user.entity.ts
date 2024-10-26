@@ -10,7 +10,6 @@ import {
 import { FriendRequest } from 'src/friend-request/entities/friendRequest.entity';
 import { Friend } from 'src/friend/entities/friend.entity';
 import { Message } from 'src/message/entities/message.entity';
-import { Room } from 'src/room/entities/room.entity';
 import { RoomUser } from 'src/room/entities/roomUser.entity';
 
 @Entity()
@@ -26,7 +25,7 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column({ nullable: true }) // Để password có thể null trong trường hợp đăng nhập bằng Google
+  @Column({ nullable: true,  select: false}) 
   password: string;
 
   @Column({
@@ -36,7 +35,7 @@ export class User {
   })
   Role: string;
 
-  @Column({ nullable: true }) // Có thể null trong trường hợp không có ảnh đại diện từ Google
+  @Column({ nullable: true }) 
   img: string;
 
   @CreateDateColumn()

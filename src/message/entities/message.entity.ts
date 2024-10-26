@@ -8,7 +8,6 @@ import {
   ManyToOne,
 } from 'typeorm';
 
-
 @Entity()
 export class Message {
   @PrimaryGeneratedColumn()
@@ -19,6 +18,12 @@ export class Message {
 
   @CreateDateColumn()
   sent_at: Date;
+  @Column({
+    type: 'enum',
+    enum: ['TEXT', 'IMG'],
+    default: 'TEXT',
+  })
+  type: string;
 
   @ManyToOne(() => User, (user) => user.messages)
   sender: User;

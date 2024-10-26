@@ -41,6 +41,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       roomId?: string;
       senderId: string;
       receiveId?: string;
+      type: string;
     },
   ) {
     try {
@@ -66,8 +67,8 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
         roomId,
         data.senderId,
         data.content,
+        data.type,
       );
-
 
       this.server.to(roomId.toString()).emit('newMessage', message);
     } catch (error) {

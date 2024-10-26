@@ -1,8 +1,18 @@
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Param,
+  Patch,
+  Delete,
+} from '@nestjs/common';
 import { RoomService } from './room.service';
 import { CreateRoomDto } from './dtos/create-room.dto';
 import { createPrivateRoom } from './dtos/createPrivateRoom.dto';
 import { CreateGroupDto } from './dtos/CreateGroupRoom.dto';
+import { Room } from './entities/room.entity';
+import { AddUsersToRoomDto } from './dtos/AddUsersToRoom.dto';
 
 @Controller('rooms')
 export class RoomController {
@@ -18,9 +28,9 @@ export class RoomController {
     return this.roomService.createPrivateRoom(createPrivateRoomDto);
   }
 
-  @Get('public')
-  async findPublicRooms() {
-    return this.roomService.findPublicRooms();
+  @Get('public/:userId')
+  async getPublicRooms(@Param('userId') userId: string): Promise<Room[]> {
+    return this.roomService.getPublicRoomsByUser(userId);
   }
 
   @Post('group')
@@ -28,41 +38,63 @@ export class RoomController {
     return this.roomService.createGroup(createGroupDto);
   }
 
-  // @Post(':roomId/join')
-  // async join(
-  //   @Param('roomId') roomId: number,
-  //   @Body() joinRoomDto: JoinRoomDto,
-  // ) {
-  //   return this.roomService.addUserToRoom(joinRoomDto.userId, roomId);
-  // }
+  @Get(':roomId/details')
+  async getRoomDetailsWithImages(@Param('roomId') roomId: string) {
+    return this.roomService.getRoomDetailsWithImages(roomId);
+  }
 
-  // @Post(':roomId/leave')
-  // async leave(
-  //   @Param('roomId') roomId: number,
-  //   @Body() joinRoomDto: JoinRoomDto,
-  // ) {
-  //   return this.roomService.removeUserFromRoom(roomId, joinRoomDto.userId);
-  // }
+  @Delete(':roomId/user/:userId')
+  async removeUserFromRoom(
+    @Param('roomId') roomId: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.roomService.removeUserFromRoom(roomId, userId);
+  }
 
-  // @Get()
-  // async findAll() {
-  //   return this.roomService.findAllRooms();
-  // }
+  @Delete(':roomId/remove-user')
+  async removeUserFromRoomByAdmin(
+    @Param('roomId') roomId: string,
+    @Body('senderId') senderId: string, // ID người gửi yêu cầu
+    @Body('targetUserId') targetUserId: string, // ID người bị xóa khỏi phòng
+  ) {
+    return this.roomService.removeUserFromRoomByAdmin(
+      roomId,
+      senderId,
+      targetUserId,
+    );
+  }
 
-  // @Get(':id')
-  // async findOne(@Param('id') id: number) {
-  //   return this.roomService.findOneRoom(id);
-  // }
+  @Post(':roomId/add-users')
+  async addUsersToRoom(
+    @Param('roomId') roomId: string,
+    @Body() createUsersToRoomDto: AddUsersToRoomDto,
+  ) {
+    return this.roomService.addUsersToRoom(
+      roomId,
+      createUsersToRoomDto.userIds,
+    );
+  }
 
-  // @Get(':userId')
-  // async getUserRooms(@Param('userId') userId: string) {
-  //   const rooms = await this.roomService.getUserRooms(userId);
-  //   return rooms;
-  // }
+  @Post(':roomId/leave')
+  async leaveRoom(
+    @Param('roomId') roomId: string,
+    @Body('userId') userId: string,
+  ) {
+    return this.roomService.leaveRoom(userId, roomId);
+  }
 
-  // @Get(':roomId/messages')
-  // async getRoomMessages(@Param('roomId') roomId: number) {
-  //   const messages = await this.roomService.getRoomMessages(roomId);
-  //   return messages;
-  // }
+  @Patch(':roomId/change-admin-status')
+  async changeAdminStatus(
+    @Param('roomId') roomId: string,
+    @Body('senderId') senderId: string,
+    @Body('targetUserId') targetUserId: string,
+    @Body('isAdmin') isAdmin: boolean,
+  ) {
+    return this.roomService.changeAdminStatus(
+      roomId,
+      senderId,
+      targetUserId,
+      isAdmin,
+    );
+  }
 }

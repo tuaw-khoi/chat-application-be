@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { Room } from './entities/room.entity';
 import { User } from 'src/user/entities/user.entity';
 import { CreateRoomDto } from './dtos/create-room.dto';
@@ -13,6 +13,7 @@ import { Message } from 'src/message/entities/message.entity';
 import { RoomUser } from './entities/roomUser.entity';
 import { createPrivateRoom } from './dtos/createPrivateRoom.dto';
 import { CreateGroupDto } from './dtos/CreateGroupRoom.dto';
+import * as CryptoJS from 'crypto-js';
 
 @Injectable()
 export class RoomService {
@@ -26,6 +27,8 @@ export class RoomService {
     @InjectRepository(RoomUser)
     private roomUserRepository: Repository<RoomUser>,
   ) {}
+
+  private readonly secretKey = 'your-secret-key';
 
   // Tạo phòng mới và gán admins cho phòng
   async createRoom(createRoomDto: CreateRoomDto): Promise<Room> {
@@ -133,51 +136,90 @@ export class RoomService {
     return savedRoom;
   }
 
-  // // Thêm người dùng vào phòng
-  // async addUserToRoom(userId: string, roomId: string): Promise<void> {
-  //   const room = await this.roomRepository.findOne({
-  //     where: { id: roomId },
-  //     relations: ['users'],
-  //   });
+  async removeUserFromRoom(roomId: string, userId: string): Promise<void> {
+    const roomUser = await this.roomUserRepository.findOne({
+      where: { room: { id: roomId }, user: { id: userId } },
+    });
 
-  //   const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!roomUser) {
+      throw new NotFoundException('User is not in the room');
+    }
 
-  //   if (!room) {
-  //     throw new NotFoundException('Room not found');
-  //   }
-  //   if (!user) {
-  //     throw new NotFoundException('User not found');
-  //   }
+    await this.roomUserRepository.remove(roomUser);
+  }
 
-  //   // Kiểm tra xem người dùng đã có trong phòng chưa
-  //   if (room.users.some((u) => u.id === user.id)) {
-  //     throw new Error('User already in the room');
-  //   }
+  async addUsersToRoom(roomId: string, userIds: string[]): Promise<void> {
+    const room = await this.roomRepository.findOne({
+      where: { id: roomId },
+    });
 
-  //   room.users.push(user);
-  //   await this.roomRepository.save(room);
-  // }
+    const users = await this.userRepository.findByIds(userIds);
 
-  // // Xóa người dùng khỏi phòng
-  // async removeUserFromRoom(roomId: string, userId: string): Promise<void> {
-  //   const room = await this.roomRepository.findOne({
-  //     where: { id: roomId },
-  //     relations: ['users'],
-  //   });
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+    if (users.length === 0) {
+      throw new NotFoundException('No users found');
+    }
 
-  //   if (!room) {
-  //     throw new NotFoundException('Room not found');
-  //   }
+    const roomUsers: RoomUser[] = [];
+    for (const user of users) {
+      // Kiểm tra xem người dùng đã có trong phòng chưa
+      const existingRoomUser = await this.roomUserRepository.findOne({
+        where: { room: { id: roomId }, user: { id: user.id } },
+      });
 
-  //   // Loại bỏ user khỏi danh sách users của phòng
-  //   room.users = room.users.filter((user) => user.id !== userId);
-  //   await this.roomRepository.save(room);
-  // }
+      if (!existingRoomUser) {
+        roomUsers.push(
+          this.roomUserRepository.create({
+            room,
+            user,
+            isAdmin: false,
+          }),
+        );
+      }
+    }
 
-  // // Lấy danh sách tất cả các phòng
-  // async findAllRooms(): Promise<Room[]> {
-  //   return this.roomRepository.find({ relations: ['users', 'admins'] });
-  // }
+    if (roomUsers.length > 0) {
+      await this.roomUserRepository.save(roomUsers);
+    }
+  }
+
+  async leaveRoom(userId: string, roomId: string): Promise<void> {
+    // Kiểm tra xem người dùng có trong nhóm không
+    const roomUser = await this.roomUserRepository.findOne({
+      where: { room: { id: roomId }, user: { id: userId } },
+    });
+
+    if (!roomUser) {
+      throw new NotFoundException('User is not in the room');
+    }
+
+    // Xóa người dùng khỏi phòng
+    await this.roomUserRepository.remove(roomUser);
+
+    // Kiểm tra xem có còn quản trị viên nào không
+    const remainingAdmins = await this.roomUserRepository.find({
+      where: { room: { id: roomId }, isAdmin: true },
+    });
+
+    if (remainingAdmins.length === 0) {
+      // Nếu không còn quản trị viên nào, chọn một thành viên ngẫu nhiên làm quản trị viên
+      const remainingMembers = await this.roomUserRepository.find({
+        where: { room: { id: roomId }, user: { id: Not(userId) } }, // Loại trừ người vừa rời
+      });
+
+      if (remainingMembers.length > 0) {
+        // Chọn một người bất kỳ làm quản trị viên mới
+        const randomIndex = Math.floor(Math.random() * remainingMembers.length);
+        const newAdmin = remainingMembers[randomIndex];
+
+        // Cập nhật thành viên mới thành quản trị viên
+        newAdmin.isAdmin = true;
+        await this.roomUserRepository.save(newAdmin);
+      }
+    }
+  }
 
   // Tìm một phòng theo ID
   async findOneRoom(id: string): Promise<Room> {
@@ -194,13 +236,56 @@ export class RoomService {
     return room;
   }
 
-  async findPublicRooms(): Promise<Room[]> {
-    const publicRooms = await this.roomRepository.find({
-      where: { isPublic: true },
-      relations: ['roomUsers', 'roomUsers.user'],
-    });
+  async getPublicRoomsByUser(userId: string): Promise<Room[]> {
+    // Kiểm tra xem user có tồn tại không
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Tìm tất cả các phòng mà user đang tham gia và là phòng public
+    const publicRooms = await this.roomRepository
+      .createQueryBuilder('room')
+      .innerJoin('room.roomUsers', 'roomUser')
+      .where('roomUser.userId = :userId', { userId })
+      .andWhere('room.isPublic = true') // Chỉ lấy các phòng public
+      .getMany();
 
     return publicRooms;
+  }
+
+  async changeAdminStatus(
+    roomId: string,
+    senderId: string, // ID của người yêu cầu
+    targetUserId: string, // ID của người bị thay đổi quyền
+    isAdmin: boolean, // Trạng thái admin mới
+  ): Promise<void> {
+    // Kiểm tra xem người gửi có phải admin không
+    const senderRoomUser = await this.roomUserRepository.exists({
+      where: { room: { id: roomId }, user: { id: senderId }, isAdmin: true },
+    });
+
+    // Nếu người gửi không phải admin, trả về lỗi
+    if (!senderRoomUser) {
+      throw new BadRequestException('You are not an admin of this room');
+    }
+
+    // Tìm người dùng bị thay đổi quyền
+    const targetRoomUser = await this.roomUserRepository.findOne({
+      where: { room: { id: roomId }, user: { id: targetUserId } },
+    });
+
+    // Kiểm tra nếu người dùng mục tiêu có trong phòng
+    if (!targetRoomUser) {
+      throw new NotFoundException('Target user is not in the room');
+    }
+
+    // Cập nhật quyền admin cho người dùng
+    targetRoomUser.isAdmin = isAdmin;
+
+    // Lưu thay đổi vào cơ sở dữ liệu
+    await this.roomUserRepository.save(targetRoomUser);
   }
 
   async getRoomBetweenUsers(userId1: string, userId2: string): Promise<any> {
@@ -303,5 +388,68 @@ export class RoomService {
       console.error('Error saving room or room users:', error);
       throw new InternalServerErrorException('Error creating room');
     }
+  }
+
+  decryptContent(encryptedContent: string): string {
+    const bytes = CryptoJS.AES.decrypt(encryptedContent, this.secretKey);
+    return bytes.toString(CryptoJS.enc.Utf8);
+  }
+
+  async getRoomDetailsWithImages(roomId: string): Promise<any> {
+    // Tìm phòng với roomId
+    const room = await this.roomRepository
+      .createQueryBuilder('room')
+      .leftJoinAndSelect('room.roomUsers', 'roomUser')
+      .leftJoinAndSelect('roomUser.user', 'user')
+      .where('room.id = :roomId', { roomId })
+      .getOne();
+
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+
+    // Tìm tất cả các tin nhắn có type là IMG trong phòng
+    const messages = await this.messageRepository.find({
+      where: { room: { id: roomId }, type: 'IMG' },
+      order: { sent_at: 'DESC' },
+    });
+
+    // Mã hóa nội dung của các tin nhắn
+    const encryptedMessages = messages.map((message) => ({
+      ...message,
+      content: this.decryptContent(message.content),
+    }));
+
+    return {
+      room,
+      imageMessages: encryptedMessages,
+    };
+  }
+
+  async removeUserFromRoomByAdmin(
+    roomId: string,
+    senderId: string, // Người gửi yêu cầu (admin)
+    targetUserId: string, // Người bị xóa khỏi phòng
+  ): Promise<void> {
+    // Kiểm tra xem người gửi có phải admin của phòng không
+    const senderRoomUser = await this.roomUserRepository.exists({
+      where: { room: { id: roomId }, user: { id: senderId }, isAdmin: true },
+    });
+
+    if (!senderRoomUser) {
+      throw new BadRequestException('You are not an admin of this room');
+    }
+
+    // Kiểm tra xem người bị xóa có tồn tại trong phòng không
+    const targetRoomUser = await this.roomUserRepository.findOne({
+      where: { room: { id: roomId }, user: { id: targetUserId } },
+    });
+
+    if (!targetRoomUser) {
+      throw new NotFoundException('Target user is not in the room');
+    }
+
+    // Xóa người dùng khỏi phòng
+    await this.roomUserRepository.remove(targetRoomUser);
   }
 }

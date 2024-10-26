@@ -11,11 +11,11 @@ import { User } from './entities/user.entity';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { UserWithGoogleDto } from './dtos/user.dto';
-import { hash } from 'bcrypt';
+import { hash, compare } from 'bcrypt';
+import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { FriendService } from 'src/friend/friend.service';
 import { RoomService } from 'src/room/room.service';
-import { FriendRequest } from 'src/friend-request/entities/friendRequest.entity';
 
 @Injectable()
 export class UserService {
@@ -24,8 +24,7 @@ export class UserService {
     private usersRepository: Repository<User>,
     private readonly friendService: FriendService,
     private readonly roomService: RoomService,
-  ) {
-  }
+  ) {}
   async refreshLogin(token: string): Promise<any> {
     try {
       const jwtObject: any = jwt.verify(token, 'secret');
@@ -109,13 +108,37 @@ export class UserService {
     return this.usersRepository.findOne({ where: { email } });
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.findOne(id);
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    await this.usersRepository.update(id, updateUserDto);
-    return this.findOne(id);
+  async findByEmailWithPassword(email: string): Promise<User> {
+    return this.usersRepository.findOne({
+      where: { email },
+      select: [
+        'id',
+        'password',
+        'email',
+        'username',
+        'Role',
+        'img',
+        'fullname',
+      ],
+    });
+  }
+
+  // Tìm kiếm user dựa trên username và trả về kèm password (dành cho việc đăng nhập)
+  async findByUsernameWithPassword(
+    username: string,
+  ): Promise<User | undefined> {
+    return this.usersRepository.findOne({
+      where: { username },
+      select: [
+        'id',
+        'password',
+        'email',
+        'username',
+        'Role',
+        'img',
+        'fullname',
+      ],
+    });
   }
 
   async remove(id: string): Promise<void> {
@@ -213,5 +236,36 @@ export class UserService {
       // Trả về thông tin người dùng nhưng room là null nếu không phải bạn bè
       return { user: userReturn, room: null, message: 'Not friends yet' };
     }
+  }
+
+  async updateProfile(id: string, updateData: Partial<User>): Promise<User> {
+    const user = await this.usersRepository.findOne({ where: { id } });
+    if (!user) throw new BadRequestException('User not found');
+
+    Object.assign(user, updateData);
+    return await this.usersRepository.save(user);
+  }
+
+  async changePassword(
+    id: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      select: ['password'],
+    });
+    const userData = await this.usersRepository.findOne({
+      where: { id },
+    });
+
+    if (!user) throw new BadRequestException('User not found');
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch)
+      throw new BadRequestException('Current password is incorrect');
+
+    userData.password = await hash(newPassword, 10);
+    await this.usersRepository.save(userData);
   }
 }

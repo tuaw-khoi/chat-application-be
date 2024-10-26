@@ -70,6 +70,7 @@ export class ChatService {
     roomId: string,
     senderId: string,
     content: string,
+    type: string,
   ): Promise<Message> {
     const room = await this.roomService.findOneRoom(roomId);
 
@@ -88,7 +89,7 @@ export class ChatService {
     }
 
     // Tạo tin nhắn
-    return await this.messageService.createMessage(senderId, roomId, content);
+    return this.messageService.createMessage(senderId, roomId, content, type);
   }
   async getRoomsForUser(userId: string): Promise<any[]> {
     const user = await this.userRepository.findOne({
@@ -113,7 +114,7 @@ export class ChatService {
 
         let roomName: string;
         let roomImg: string;
-        let receiveId :string
+        let receiveId: string;
         // Nếu phòng là private (isPublic = false), đặt tên dựa trên user khác trong phòng
         if (!room.isPublic) {
           // Giả định room.name chứa 2 userId ngăn cách bằng dấu "_"
@@ -131,7 +132,7 @@ export class ChatService {
             if (otherUser) {
               roomName = otherUser.fullname || 'Unknown User';
               roomImg = otherUser.img || null;
-              receiveId = otherUser.id || null
+              receiveId = otherUser.id || null;
             }
           }
         } else {

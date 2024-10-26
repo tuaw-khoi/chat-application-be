@@ -18,17 +18,21 @@ export class AuthService {
 
     let user;
     if (emailorusername?.includes('@')) {
-      user = await this.userService.findByEmail(emailorusername);
+      // Tìm user theo email kèm password để kiểm tra
+      user = await this.userService.findByEmailWithPassword(emailorusername);
     } else {
-      user = await this.userService.findByUsername(emailorusername);
+      // Tìm user theo username kèm password để kiểm tra
+      user = await this.userService.findByUsernameWithPassword(emailorusername);
     }
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    const test = this.generateTokens(user);
 
-    return test;
+    // Loại bỏ password trước khi trả về user
+    const { password: _password, ...userWithoutPassword } = user;
+
+    return this.generateTokens(userWithoutPassword);
   }
 
   async firebaseLogin(token: string) {
@@ -38,7 +42,7 @@ export class AuthService {
 
       let user = await this.userService.findByEmail(email);
       if (!user) {
-        // If the user does not exist, create a new user
+        // Nếu người dùng không tồn tại, tạo mới
         const createUserDto = {
           fullname: name || email.split('@')[0],
           email,
@@ -59,13 +63,14 @@ export class AuthService {
     const payload = {
       username: user.username,
       sub: user.id,
-      role: user?.role,
+      role: user.role,
       img: user.img,
       fullname: user.fullname,
     };
+
     const userReturn = {
       id: user.id,
-      role: user.Role,
+      role: user.role,
       img: user.img,
       fullname: user.fullname,
     };
@@ -104,3 +109,4 @@ export class AuthService {
     }
   }
 }
+
