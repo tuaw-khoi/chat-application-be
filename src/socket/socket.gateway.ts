@@ -146,7 +146,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       roomId: room.id, // roomId chính là id của phòng
       type: 'room', // Đánh dấu là room
     }));
-
+    console.log([...friendsWithRooms, ...formattedRooms]);
     // Gom bạn bè và phòng vào chung một mảng
     const searchResults = [...friendsWithRooms, ...formattedRooms];
     // Trả kết quả về client

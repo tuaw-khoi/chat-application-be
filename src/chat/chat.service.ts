@@ -217,7 +217,8 @@ export class ChatService {
 
       if (
         room.name.toLowerCase().includes(query.toLowerCase()) &&
-        !roomMap.has(room.id)
+        !roomMap.has(room.id) &&
+        room.isPublic
       ) {
         roomMap.set(room.id, room);
       }

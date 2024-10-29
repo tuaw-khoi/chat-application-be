@@ -97,4 +97,15 @@ export class RoomController {
       isAdmin,
     );
   }
+
+  @Patch(':id/name')
+  async updateRoomName(
+    @Param('id') roomId: string,
+    @Body() updateRoomNameDto: { newName: string },
+  ) {
+    return await this.roomService.updateRoomName(
+      roomId,
+      updateRoomNameDto.newName,
+    );
+  }
 }

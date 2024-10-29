@@ -452,4 +452,15 @@ export class RoomService {
     // Xóa người dùng khỏi phòng
     await this.roomUserRepository.remove(targetRoomUser);
   }
+
+  async updateRoomName(roomId: string, newName: string): Promise<Room> {
+    const room = await this.roomRepository.findOne({ where: { id: roomId } });
+
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+
+    room.name = newName;
+    return await this.roomRepository.save(room);
+  }
 }
