@@ -4,15 +4,18 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToMany,
   OneToMany,
 } from 'typeorm';
 import { FriendRequest } from 'src/friend-request/entities/friendRequest.entity';
 import { Friend } from 'src/friend/entities/friend.entity';
 import { Message } from 'src/message/entities/message.entity';
 import { RoomUser } from 'src/room/entities/roomUser.entity';
+import { Post } from 'src/post/entities/post.entity';
+import { Like } from 'src/likes/entities/likes.entity';
+import { Comment } from 'src/comment/entities/comment.entity';
+import { Notification } from 'src/notification/entities/notification.entity';
 
-@Entity()
+@Entity('Users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -22,10 +25,11 @@ export class User {
 
   @Column({ nullable: true })
   fullname: string;
+
   @Column({ unique: true })
   email: string;
 
-  @Column({ nullable: true,  select: false}) 
+  @Column({ nullable: true, select: false })
   password: string;
 
   @Column({
@@ -35,7 +39,7 @@ export class User {
   })
   Role: string;
 
-  @Column({ nullable: true }) 
+  @Column({ nullable: true })
   img: string;
 
   @CreateDateColumn()
@@ -45,7 +49,7 @@ export class User {
   updated_at: Date;
 
   @OneToMany(() => RoomUser, (roomUser) => roomUser.user)
-  roomUsers: RoomUser[]; 
+  roomUsers: RoomUser[];
 
   @OneToMany(() => Message, (message) => message.sender)
   messages: Message[];
@@ -58,4 +62,16 @@ export class User {
 
   @OneToMany(() => Friend, (friend) => friend.user1)
   friends: Friend[];
+
+  @OneToMany(() => Post, (post) => post.author)
+  posts: Post[];
+
+  @OneToMany(() => Comment, (comment) => comment.author)
+  comments: Comment[];
+
+  @OneToMany(() => Like, (like) => like.user)
+  likes: Like[];
+
+  @OneToMany(() => Notification, (notification) => notification.recipient)
+  notifications: Notification[];
 }

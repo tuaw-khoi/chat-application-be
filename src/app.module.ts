@@ -14,13 +14,10 @@ import { FirebaseModule } from './config/firebase/firebase.module';
 import { ChatModule } from './chat/chat.module';
 import { SocketModule } from './socket/socket.module';
 import { PostModule } from './post/post.module';
-import { CommentController } from './comment/comment.controller';
-import { CommentService } from './comment/comment.service';
 import { CommentModule } from './comment/comment.module';
-import { LikesController } from './likes/likes.controller';
 import { LikesModule } from './likes/likes.module';
-import { NotificationController } from './notification/notification.controller';
 import { NotificationModule } from './notification/notification.module';
+import { PhotoModule } from './photo/photo.module';
 
 @Module({
   imports: [
@@ -50,8 +47,9 @@ import { NotificationModule } from './notification/notification.module';
     CommentModule,
     LikesModule,
     NotificationModule,
+    PhotoModule,
   ],
-  controllers: [AppController, CommentController, LikesController, NotificationController],
-  providers: [AppService, CommentService],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}
