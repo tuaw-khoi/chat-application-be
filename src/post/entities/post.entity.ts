@@ -20,6 +20,9 @@ export class Post {
   @Column({ type: 'text' })
   content: string;
 
+  @Column()
+  isPublic: boolean;
+
   @ManyToOne(() => User, (user) => user.posts, { onDelete: 'CASCADE' })
   author: User;
 

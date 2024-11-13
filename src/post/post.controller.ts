@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { PostService } from './post.service';
 import { Post as PostEntity } from './entities/post.entity';
@@ -19,6 +20,7 @@ import { PostResponse } from './responses/post.response';
 import { ApiCreatedResponse, ApiOperation } from '@nestjs/swagger';
 import { CurrentUser } from 'src/config/decorators/user.decorator';
 import { User } from 'src/user/entities/user.entity';
+import { GetPostsResponse } from './responses/get.response';
 
 @Controller('posts')
 @JwtAuthGuard()
@@ -35,26 +37,85 @@ export class PostController {
     @CurrentUser() user: User,
   ): Promise<PostResponse> {
     const postEntity = await this.postService.create(createPostDto, user.id);
-
     const postResponse: PostResponse = {
+      id: postEntity.id,
       content: postEntity.content,
-      authorId: postEntity.author.id,
+      author: postEntity.author,
       createdAt: postEntity.createdAt,
       updatedAt: postEntity.updatedAt,
       photos: postEntity.photos?.map((photo) => photo.url),
-      totalLikes: postEntity.likes ? postEntity.likes.length : 0,
-      totalComments: postEntity.comments ? postEntity.comments.length : 0,
+      isPublic: postEntity.isPublic,
     };
 
     return postResponse;
   }
 
   @Get()
-  @ApiOperation({ description: 'Find all posts' })
-  @ApiCreatedResponse({ type: PostResponse })
+  @ApiOperation({ description: 'Find all posts with pagination' })
+  @ApiCreatedResponse({ type: PostEntity, isArray: true })
   @HttpCode(HttpStatus.OK)
-  async findAll(@CurrentUser() user: User): Promise<PostEntity[]> {
-    return this.postService.findAllById(user.id);
+  async findAll(
+    @CurrentUser() user: User,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<GetPostsResponse> {
+    const { data, total } = await this.postService.findAllById(
+      user.id,
+      page,
+      limit,
+    );
+
+    return {
+      data: data.map((post) => ({
+        id: post.id,
+        content: post.content,
+        author: post.author,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        photos: post.photos?.map((photo) => photo.url),
+        likes: post.likes,
+        comments: post.comments,
+        isPublic: post.isPublic,
+      })),
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  @Get('friends')
+  @ApiOperation({
+    description: 'Get posts of user and their friends with pagination',
+  })
+  @ApiCreatedResponse({ type: PostEntity, isArray: true })
+  @HttpCode(HttpStatus.OK)
+  async getAllPostsOfFriendsAndUser(
+    @CurrentUser() user: User,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<GetPostsResponse> {
+    const { data, total } = await this.postService.getAllPostsOfFriendsAndUser(
+      user.id,
+      page,
+      limit,
+    );
+
+    return {
+      data: data.map((post) => ({
+        id: post.id,
+        content: post.content,
+        author: post.author,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        photos: post.photos?.map((photo) => photo.url),
+        likes: post.likes,
+        comments: post.comments,
+        isPublic: post.isPublic,
+      })),
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   @ApiOperation({ description: 'Find a post' })

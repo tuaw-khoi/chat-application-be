@@ -6,18 +6,27 @@ import {
   IsString,
   IsUUID,
   IsArray,
+  IsBoolean,
 } from 'class-validator';
+import { UserResponse } from 'src/user/responses/user.response';
+import { LikeResponse } from 'src/likes/reponses/like.response';
+import { CommentResponse } from 'src/comment/responses/comment.response';
+import { Like } from 'src/likes/entities/likes.entity';
 
 export class PostResponse {
+  @ApiProperty({ example: faker.string.uuid() })
+  @IsNotEmpty()
+  @IsUUID('4')
+  id: string;
+  
   @ApiProperty({ example: faker.lorem.paragraph() }) // Nội dung bài viết
   @IsNotEmpty()
   @IsString()
   content: string;
 
-  @ApiProperty({ example: faker.string.uuid() }) // ID của tác giả
+  @ApiProperty({ type: UserResponse })
   @IsNotEmpty()
-  @IsUUID('4')
-  authorId: string;
+  author: UserResponse;
 
   @ApiProperty({ example: faker.date.past() }) // Thời gian tạo bài viết
   @IsNotEmpty()
@@ -36,11 +45,16 @@ export class PostResponse {
   @IsArray()
   photos: string[];
 
-  @ApiPropertyOptional({ example: faker.number.int() }) // Tổng số lượt thích
+  @ApiPropertyOptional({ type: LikeResponse })
   @IsOptional()
-  totalLikes: number;
+  likes?: Like[];
 
-  @ApiPropertyOptional({ example: faker.number.int() }) // Tổng số bình luận
+  @ApiPropertyOptional({ type: CommentResponse }) // Tổng số bình luận
   @IsOptional()
-  totalComments: number;
+  comments?: CommentResponse[];
+
+  @ApiProperty({ example: true }) // Trạng thái công khai của bài viết
+  @IsNotEmpty()
+  @IsBoolean()
+  isPublic: boolean;
 }

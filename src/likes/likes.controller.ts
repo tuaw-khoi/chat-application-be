@@ -38,6 +38,7 @@ export class LikesController {
   })
   @HttpCode(HttpStatus.NO_CONTENT)
   async unlikePost(@Param('postId') postId: string, @CurrentUser() user: User) {
+    console.log(postId);
     return this.likesService.unlikePost(postId, user.id);
   }
 }

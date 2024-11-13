@@ -108,4 +108,17 @@ export class RoomController {
       updateRoomNameDto.newName,
     );
   }
+
+  @Get('between/:userId1/:userId2')
+  async getRoomBetweenUsers(
+    @Param('userId1') userId1: string, // Lấy userId1 từ param
+    @Param('userId2') userId2: string, // Lấy userId2 từ param
+  ) {
+    const result = await this.roomService.getRoomBetweenUsers(userId1, userId2);
+    if (!result) {
+      return { message: 'Không tìm thấy phòng giữa hai người dùng này' };
+    }
+
+    return result;
+  }
 }

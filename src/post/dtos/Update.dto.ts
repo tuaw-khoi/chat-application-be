@@ -7,4 +7,7 @@ export class UpdatePostDto {
 
   @IsOptional()
   photos?: string[]; // Danh sách URL hoặc ID của ảnh
+
+  @IsOptional()
+  isPublic?: boolean;
 }

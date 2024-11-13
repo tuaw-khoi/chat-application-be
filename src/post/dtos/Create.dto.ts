@@ -6,5 +6,8 @@ export class CreatePostDto {
   content: string;
 
   @IsOptional()
-  photos?: string[]; 
+  photos?: string[];
+
+  @IsOptional()
+  isPublic?: boolean;
 }

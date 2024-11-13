@@ -17,16 +17,16 @@ export class FriendService {
   ) {}
 
   async getFriend(userId: string): Promise<Friend[]> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: ['friends'],
+    const friends = await this.friendRepository.find({
+      where: [{ user1: { id: userId } }, { user2: { id: userId } }],
+      relations: ['user1', 'user2'],
     });
 
-    if (!user) {
+    if (!friends) {
       throw new NotFoundException('User not found');
     }
 
-    return user.friends;
+    return friends;
   }
 
   async checkFriendship(userId1: string, userId2: string): Promise<boolean> {
@@ -130,7 +130,7 @@ export class FriendService {
         { user1: { id: userId }, user2: { id: friendId } },
         { user1: { id: friendId }, user2: { id: userId } },
       ],
-      relations: ['user1', 'user2'], 
+      relations: ['user1', 'user2'],
     });
 
     if (!friendship) {

@@ -21,7 +21,8 @@ export class PhotoService {
     });
 
     return (
-      photo ?? this.photoRepository.save(this.photoRepository.create({url:criteria}))
+      photo ??
+      this.photoRepository.save(this.photoRepository.create({ url: criteria }))
     );
   }
 

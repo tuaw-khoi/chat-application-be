@@ -15,7 +15,7 @@ import { FirebaseModule } from 'src/config/firebase/firebase.module';
     PassportModule,
     JwtModule.register({
       secret: 'secret',
-      signOptions: { expiresIn: '60m' },
+      signOptions: { expiresIn: '1d' },
     }),
   ],
   controllers: [AuthController],

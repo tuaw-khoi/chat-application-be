@@ -188,7 +188,7 @@ export class FriendRequestService {
     });
 
     if (existingRequest) {
-      return { status: existingRequest.status }; // Trả về trạng thái của lời mời kết bạn (pending, accepted, rejected)
+      return { status: existingRequest.status }; 
     }
 
     return { status: 'not_found' }; // Nếu không có lời mời kết bạn, trả về 'not_found'
