@@ -18,7 +18,7 @@ export class PostResponse {
   @IsNotEmpty()
   @IsUUID('4')
   id: string;
-  
+
   @ApiProperty({ example: faker.lorem.paragraph() }) // Nội dung bài viết
   @IsNotEmpty()
   @IsString()
@@ -57,4 +57,9 @@ export class PostResponse {
   @IsNotEmpty()
   @IsBoolean()
   isPublic: boolean;
+
+  @ApiProperty({ example: faker.number }) 
+  @IsNotEmpty()
+  @IsBoolean()
+  totalComment?: number;
 }

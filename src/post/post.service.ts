@@ -1,3 +1,4 @@
+import { Comment } from './../comment/entities/comment.entity';
 import {
   ForbiddenException,
   Injectable,
@@ -12,6 +13,7 @@ import { CreatePostDto } from './dtos/Create.dto';
 import { UpdatePostDto } from './dtos/Update.dto';
 import { User } from 'src/user/entities/user.entity';
 import { FriendService } from 'src/friend/friend.service';
+import { da } from '@faker-js/faker/.';
 
 @Injectable()
 export class PostService {
@@ -136,6 +138,7 @@ export class PostService {
       .leftJoinAndSelect('post.photos', 'photos')
       .leftJoinAndSelect('post.comments', 'comments')
       .leftJoinAndSelect('comments.author', 'commentAuthor')
+      .leftJoinAndSelect('comments.parentComment', 'parentCommentId')
       .leftJoinAndSelect('post.likes', 'likes')
       .leftJoinAndSelect('likes.user', 'likeUser')
       .leftJoinAndSelect('likeUser.roomUsers', 'roomUser')
@@ -145,21 +148,29 @@ export class PostService {
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
+    const filteredData = data.map((post: any) => {
+      const totalComment = post.comments.length;
+      if (post.comments) {
+        post.comments = post.comments
+          .filter((comment) => comment.parentComment === null)
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          );
+      }
 
-    const filteredData = data.map((post) => {
+      // Xử lý likes và room của mỗi post
       post.likes.forEach((like: any) => {
         like.user.roomUsers = like.user.roomUsers
           .filter((roomUser) => roomUser.room.isPublic === false)
-          .map((roomUser) => {
-            return {
-              ...roomUser,
-              room: { ...roomUser.room, name: like.user.fullname },
-            };
-          });
+          .map((roomUser) => ({
+            ...roomUser,
+            room: { ...roomUser.room, name: like.user.fullname },
+          }));
       });
+      post.totalComment = totalComment;
       return post;
     });
-
     return { data: filteredData, total };
   }
 }

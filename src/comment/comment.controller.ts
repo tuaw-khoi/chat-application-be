@@ -5,6 +5,7 @@ import {
   Param,
   Put,
   Delete,
+  Get,
 } from '@nestjs/common';
 import { CommentService } from './comment.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
@@ -45,5 +46,12 @@ export class CommentController {
   @ApiResponse({ status: 204, description: 'Comment deleted successfully' })
   async deleteComment(@Param('id') id: string) {
     await this.commentService.deleteComment(id);
+  }
+
+  @Get(':id/replies')
+  @ApiOperation({ summary: 'Get all replies of a comment' })
+  @ApiResponse({ status: 200, description: 'Replies fetched successfully' })
+  async getAllReplies(@Param('id') id: string) {
+    return this.commentService.getAllReplies(id);
   }
 }

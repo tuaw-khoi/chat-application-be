@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   OneToMany,
+  JoinColumn,
 } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { Post } from 'src/post/entities/post.entity';
@@ -29,12 +30,13 @@ export class Comment {
   // Tạo quan hệ tự tham chiếu để có thể trả lời comment
   @ManyToOne(() => Comment, (comment) => comment.replies, {
     nullable: true,
-    onDelete: 'CASCADE', 
+    onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'parentCommentId' })
   parentComment: Comment;
 
   @OneToMany(() => Comment, (comment) => comment.parentComment, {
-    cascade: true, 
+    cascade: true,
   })
   replies: Comment[];
 }

@@ -101,7 +101,7 @@ export class PostController {
     );
 
     return {
-      data: data.map((post) => ({
+      data: data.map((post: any) => ({
         id: post.id,
         content: post.content,
         author: post.author,
@@ -111,6 +111,7 @@ export class PostController {
         likes: post.likes,
         comments: post.comments,
         isPublic: post.isPublic,
+        totalComment: post.totalComment,
       })),
       total,
       currentPage: page,
