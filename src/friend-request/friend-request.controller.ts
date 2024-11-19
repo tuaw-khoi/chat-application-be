@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { FriendRequestService } from './friend-request.service';
 
+
 @Controller('friend-requests')
 export class FriendRequestController {
   constructor(private readonly friendRequestService: FriendRequestService) {}
@@ -53,5 +54,13 @@ export class FriendRequestController {
     @Param('friendId') friendId: string,
   ) {
     return this.friendRequestService.cancelFriendRequest(userId, friendId);
+  }
+
+  @Get('/suggestions')
+  async suggestFriends(@Query('userId') userId: string) {
+    if (!userId) {
+      throw new BadRequestException('UserId is required');
+    }
+    return this.friendRequestService.suggestFriends(userId);
   }
 }

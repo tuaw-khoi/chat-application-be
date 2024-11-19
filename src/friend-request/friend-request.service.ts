@@ -4,10 +4,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { FriendRequest } from './entities/friendRequest.entity';
 import { Friend } from 'src/friend/entities/friend.entity';
+import { NotificationService } from 'src/notification/notification.service';
 
 @Injectable()
 export class FriendRequestService {
@@ -18,6 +19,7 @@ export class FriendRequestService {
     private userRepository: Repository<User>,
     @InjectRepository(Friend)
     private friendRepository: Repository<Friend>,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async sendFriendRequest(senderId: string, receiverId: string) {
@@ -188,7 +190,7 @@ export class FriendRequestService {
     });
 
     if (existingRequest) {
-      return { status: existingRequest.status }; 
+      return { status: existingRequest.status };
     }
 
     return { status: 'not_found' }; // Nếu không có lời mời kết bạn, trả về 'not_found'
@@ -228,5 +230,52 @@ export class FriendRequestService {
 
     // Xóa lời mời kết bạn
     await this.friendRequestRepository.delete(requestExists.id);
+  }
+
+  async suggestFriends(userId: string): Promise<User[]> {
+    // Tìm user hiện tại
+    const currentUser = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!currentUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Tìm danh sách bạn bè
+    const friends = await this.friendRepository.find({
+      where: [{ user1: { id: userId } }, { user2: { id: userId } }],
+      relations: ['user1', 'user2'],
+    });
+
+    const friendIds = new Set<string>();
+    friends.forEach((friend) => {
+      if (friend.user1.id !== userId) friendIds.add(friend.user1.id);
+      if (friend.user2.id !== userId) friendIds.add(friend.user2.id);
+    });
+
+    // Tìm danh sách lời mời kết bạn liên quan đến userId
+    const friendRequests = await this.friendRequestRepository.find({
+      where: [{ sender: { id: userId } }, { receiver: { id: userId } }],
+      relations: ['sender', 'receiver'],
+    });
+    const pendingUserIds = new Set<string>();
+    friendRequests.forEach((request) => {
+      if (request.sender.id !== userId) pendingUserIds.add(request.sender.id);
+      if (request.receiver.id !== userId)
+        pendingUserIds.add(request.receiver.id);
+    });
+
+    // Lọc các user chưa gửi hoặc nhận lời mời kết bạn và không phải bạn bè
+    const excludedIds = Array.from(
+      new Set([...friendIds, ...pendingUserIds, userId]),
+    );
+    const suggestedUsers = await this.userRepository.find({
+      where: {
+        id: Not(In(excludedIds)),
+      },
+      take: 10,
+    });
+    return suggestedUsers;
   }
 }

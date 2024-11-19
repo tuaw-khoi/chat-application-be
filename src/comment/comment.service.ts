@@ -27,7 +27,10 @@ export class CommentService {
     if (!post) throw new NotFoundException(`Post with ID ${postId} not found`);
 
     const parentComment = parentCommentId
-      ? await this.commentRepository.findOne({ where: { id: parentCommentId } })
+      ? await this.commentRepository.findOne({
+          where: { id: parentCommentId },
+          relations: ['author'],
+        })
       : null;
 
     const savedComment = await this.commentRepository.save({
@@ -38,21 +41,22 @@ export class CommentService {
     });
 
     const recipient = await this.postService.findPostOwner(postId);
-    // if (recipient && recipient.id !== author.id) {
-    //   await this.notificationService.createCommentNotification(
-    //     recipient,
-    //     author,
-    //     postId,
-    //   );
-    // }
 
-    // if (parentComment && parentComment.author.id !== author.id) {
-    //   await this.notificationService.createReplyNotification(
-    //     parentComment.author,
-    //     author,
-    //     postId,
-    //   );
-    // }
+    if (recipient && recipient.id !== author.id) {
+      await this.notificationService.createCommentNotification(
+        recipient,
+        author,
+        postId,
+      );
+    }
+
+    if (parentComment && parentComment.author.id !== author.id) {
+      await this.notificationService.createReplyNotification(
+        parentComment.author,
+        author,
+        postId,
+      );
+    }
 
     return savedComment;
   }
@@ -75,13 +79,13 @@ export class CommentService {
   async deleteComment(id: string): Promise<void> {
     const comment = await this.commentRepository.findOne({
       where: { id },
-      relations: ['replies'], 
+      relations: ['replies'],
     });
 
     if (!comment)
       throw new NotFoundException(`Comment with ID ${id} not found`);
 
-    await this.commentRepository.remove(comment); 
+    await this.commentRepository.remove(comment);
   }
 
   async getAllReplies(commentId: string): Promise<Comment[]> {

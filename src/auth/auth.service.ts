@@ -70,7 +70,7 @@ export class AuthService {
 
     const userReturn = {
       id: user.id,
-      role: user.role,
+      role: user.Role,
       img: user.img,
       fullname: user.fullname,
     };
@@ -102,7 +102,6 @@ export class AuthService {
       if (!user) {
         throw new UnauthorizedException('Invalid refresh token');
       }
-
       return this.generateTokens(user);
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token');

@@ -28,6 +28,9 @@ export class UserService {
   async refreshLogin(token: string): Promise<any> {
     try {
       const jwtObject: any = jwt.verify(token, 'secret');
+      if (jwtObject.exp * 1000 < Date.now()) {
+        throw new UnauthorizedException('Token has expired.');
+      }
       const username = jwtObject.username;
       const user = await this.usersRepository.findOne({ where: { username } });
       if (!user) {
@@ -42,7 +45,13 @@ export class UserService {
 
       return { userReturn };
     } catch (error) {
-      throw new UnauthorizedException('Invalid token.');
+      if (error.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Token has expired.');
+      }
+      if (error.name === 'JsonWebTokenError') {
+        throw new UnauthorizedException('Invalid token.');
+      }
+      throw new UnauthorizedException('Authentication failed.');
     }
   }
   async create(createUserDto: CreateUserDto): Promise<any> {

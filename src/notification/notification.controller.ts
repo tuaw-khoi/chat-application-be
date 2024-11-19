@@ -11,7 +11,7 @@ export class NotificationController {
 
   @Get()
   async getNotifications(@CurrentUser() user: User) {
-    return this.notificationService.getNotifications(user.id);
+    return this.notificationService.getAllNotifications(user.id);
   }
 
   @Patch(':id/read')

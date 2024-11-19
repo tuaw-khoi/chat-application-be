@@ -12,7 +12,7 @@ export class NotificationService {
   ) {}
 
   async createLikeNotification(recipient: User, liker: User, postId: string) {
-    const message = `${liker.username} liked your post.`;
+    const message = `${liker.fullname} đã thích bài viết của bạn.`;
     const notification = this.notificationRepository.create({
       message,
       recipient,
@@ -28,7 +28,7 @@ export class NotificationService {
     commenter: User,
     postId: string,
   ) {
-    const message = `${commenter.username} commented on your post.`;
+    const message = `${commenter.fullname} đã bình luận bài viết của bạn.`;
     const notification = this.notificationRepository.create({
       message,
       recipient,
@@ -44,7 +44,7 @@ export class NotificationService {
     replier: User,
     postId: string,
   ) {
-    const message = `${replier.username} replied to your comment.`;
+    const message = `${replier.fullname} đã trả lời bình luận của bạn.`;
     const notification = this.notificationRepository.create({
       message,
       recipient,
@@ -64,10 +64,20 @@ export class NotificationService {
     return await this.notificationRepository.save(notification);
   }
 
-  async getNotifications(userId: string) {
-    return this.notificationRepository.find({
+  async getAllNotifications(userId: string) {
+    // Tìm tất cả các thông báo của user
+    const notifications = await this.notificationRepository.find({
       where: { recipient: { id: userId } },
       order: { createdAt: 'DESC' },
     });
+
+    return notifications.map((notification) => ({
+      id: notification.id,
+      message: notification.message,
+      isRead: notification.isRead,
+      type: notification.type,
+      postId: notification.postId,
+      createdAt: notification.createdAt,
+    }));
   }
 }
