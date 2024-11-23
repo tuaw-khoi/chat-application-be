@@ -6,14 +6,15 @@ import { User } from './entities/user.entity';
 import { Friend } from 'src/friend/entities/friend.entity';
 import { FriendModule } from 'src/friend/friend.module';
 import { RoomModule } from 'src/room/room.module';
-import { FriendRequestModule } from 'src/friend-request/friend-request.module';
-import { FriendRequest } from 'src/friend-request/entities/friendRequest.entity';
-
+import { LikesModule } from 'src/likes/likes.module';
+import { PostModule } from 'src/post/post.module';
+import { NotificationModule } from 'src/notification/notification.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Friend]),
     FriendModule,
+    LikesModule,
     forwardRef(() => RoomModule),
   ],
 

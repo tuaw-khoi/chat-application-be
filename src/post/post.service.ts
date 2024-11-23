@@ -56,18 +56,6 @@ export class PostService {
     return { data, total };
   }
 
-  async findOne(id: string): Promise<Post> {
-    const post = await this.postRepository.findOne({
-      where: { id },
-      relations: ['author', 'photos', 'likes', 'comments'],
-    });
-
-    if (!post) {
-      throw new NotFoundException(`Post with ID ${id} not found`);
-    }
-    return post;
-  }
-
   async update(
     id: string,
     updatePostDto: UpdatePostDto,
@@ -172,5 +160,122 @@ export class PostService {
       return post;
     });
     return { data: filteredData, total };
+  }
+
+  async getAllPostsByUser(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<{ data: Post[]; total: number }> {
+    const [data, total] = await this.postRepository
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.author', 'author')
+      .leftJoinAndSelect('post.photos', 'photos')
+      .leftJoinAndSelect('post.comments', 'comments')
+      .leftJoinAndSelect('comments.author', 'commentAuthor')
+      .leftJoinAndSelect('comments.parentComment', 'parentCommentId')
+      .leftJoinAndSelect('post.likes', 'likes')
+      .leftJoinAndSelect('likes.user', 'likeUser')
+      .where('post.author.id = :userId', { userId })
+      .orderBy('post.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    const filteredData = data.map((post: any) => {
+      const totalComment = post.comments.length;
+
+      if (post.comments) {
+        post.comments = post.comments
+          .filter((comment) => comment.parentComment === null)
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          );
+      }
+
+      post.totalComment = totalComment;
+      return post;
+    });
+    return { data: filteredData, total };
+  }
+
+  async findOnePostWithDetails(
+    userId: string,
+    postId: string,
+  ): Promise<
+    Omit<Post, 'photos'> & { photos: string[]; totalComment: number }
+  > {
+    const friends = await this.friendService.getFriend(userId);
+    const friendIds = friends.map((friend) =>
+      friend.user1.id === userId ? friend.user2.id : friend.user1.id,
+    );
+
+    // Thêm userId vào danh sách friendIds
+    friendIds.push(userId);
+
+    const post = await this.postRepository
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.author', 'author')
+      .leftJoinAndSelect('post.photos', 'photos')
+      .leftJoinAndSelect('post.comments', 'comments')
+      .leftJoinAndSelect('comments.author', 'commentAuthor')
+      .leftJoinAndSelect('comments.parentComment', 'parentCommentId')
+      .leftJoinAndSelect('post.likes', 'likes')
+      .leftJoinAndSelect('likes.user', 'likeUser')
+      .leftJoinAndSelect('likeUser.roomUsers', 'roomUser')
+      .leftJoinAndSelect('roomUser.room', 'room')
+      .where('post.author.id IN (:...friendIds)', { friendIds })
+      .andWhere('post.id = :postId', { postId })
+      .getOne();
+
+    if (!post) {
+      throw new NotFoundException(`Post with ID ${postId} not found`);
+    }
+
+    // Tổng số comment
+    const totalComment = post.comments.length;
+
+    // Lọc và sắp xếp comment
+    if (post.comments) {
+      post.comments = post.comments
+        .filter((comment) => comment.parentComment === null)
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+    }
+
+    // Xử lý likes và room
+    post.likes.forEach((like: any) => {
+      like.user.roomUsers = like.user.roomUsers
+        .filter((roomUser) => roomUser.room.isPublic === false)
+        .map((roomUser) => ({
+          ...roomUser,
+          room: { ...roomUser.room, name: like.user.fullname },
+        }));
+    });
+
+    // Tạo mảng photos chỉ chứa URL
+    const photos = post.photos.map((photo) => photo.url);
+
+    // Thêm `photos` và `totalComment` vào post
+    return {
+      ...post,
+      photos,
+      totalComment,
+    };
+  }
+
+  async findOne(id: string): Promise<Post> {
+    const post = await this.postRepository.findOne({
+      where: { id },
+      relations: ['author', 'photos', 'likes', 'comments'],
+    });
+
+    if (!post) {
+      throw new NotFoundException(`Post with ID ${id} not found`);
+    }
+    return post;
   }
 }

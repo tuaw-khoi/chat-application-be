@@ -278,4 +278,38 @@ export class FriendRequestService {
     });
     return suggestedUsers;
   }
+
+  async getSentFriendRequests(userId: string) {
+    // Find the user by their ID
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Fetch all the friend requests where the current user is the sender
+    const sentRequests = await this.friendRequestRepository.find({
+      where: {
+        sender: { id: userId },
+      },
+      relations: ['receiver', 'sender'],
+    });
+
+    // Map the results to only include relevant fields
+    const filteredRequests = sentRequests.map((request) => ({
+      id: request.id,
+      status: request.status,
+      created_at: request.created_at,
+      receiver: {
+        id: request.receiver.id,
+        username: request.receiver.username,
+        fullname: request.receiver.fullname,
+        img: request.receiver.img,
+      },
+    }));
+
+    return filteredRequests;
+  }
 }

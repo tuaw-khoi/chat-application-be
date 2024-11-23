@@ -63,4 +63,17 @@ export class LikesService {
   async countLikes(postId: string): Promise<number> {
     return this.likeRepository.count({ where: { post: { id: postId } } });
   }
+
+  async countLikesForPosts(postIds: string[]): Promise<number> {
+    if (!postIds || postIds.length === 0) {
+      return 0;
+    }
+
+    const totalLikes = await this.likeRepository
+      .createQueryBuilder('like')
+      .where('like.postId IN (:...postIds)', { postIds })
+      .getCount();
+
+    return totalLikes;
+  }
 }

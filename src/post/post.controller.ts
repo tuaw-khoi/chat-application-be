@@ -119,10 +119,57 @@ export class PostController {
     };
   }
 
+  @Get('allPost')
+  @ApiOperation({
+    description: 'Get posts of user with pagination',
+  })
+  @ApiCreatedResponse({ type: PostEntity, isArray: true })
+  @HttpCode(HttpStatus.OK)
+  async getAllPostsOfUser(
+    @Query('userId') userId: string, 
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<GetPostsResponse> {
+    const { data, total } = await this.postService.getAllPostsByUser(
+      userId, // Sử dụng userId truyền vào
+      page,
+      limit,
+    );
+
+    return {
+      data: data.map((post: any) => ({
+        id: post.id,
+        content: post.content,
+        author: post.author,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        photos: post.photos?.map((photo) => photo.url),
+        likes: post.likes,
+        comments: post.comments,
+        isPublic: post.isPublic,
+        totalComment: post.totalComment,
+      })),
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
   @ApiOperation({ description: 'Find a post' })
   @ApiCreatedResponse({ type: PostResponse })
   @HttpCode(HttpStatus.OK)
   @Get(':id')
+  async findOnePostWithDetails(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ): Promise<any> {
+    return this.postService.findOnePostWithDetails(user.id, id);
+  }
+
+  @ApiOperation({ description: 'Find a post' })
+  @ApiCreatedResponse({ type: PostResponse })
+  @HttpCode(HttpStatus.OK)
+  @Get('findOne/:id')
   async findOne(@Param('id') id: string): Promise<PostEntity> {
     return this.postService.findOne(id);
   }

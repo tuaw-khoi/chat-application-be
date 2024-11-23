@@ -16,6 +16,7 @@ import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { FriendService } from 'src/friend/friend.service';
 import { RoomService } from 'src/room/room.service';
+import { LikesService } from 'src/likes/likes.service';
 
 @Injectable()
 export class UserService {
@@ -24,6 +25,7 @@ export class UserService {
     private usersRepository: Repository<User>,
     private readonly friendService: FriendService,
     private readonly roomService: RoomService,
+    private readonly likeService: LikesService,
   ) {}
   async refreshLogin(token: string): Promise<any> {
     try {
@@ -276,5 +278,36 @@ export class UserService {
 
     userData.password = await hash(newPassword, 10);
     await this.usersRepository.save(userData);
+  }
+
+  async getUserInfo(userId: string): Promise<any> {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: ['posts'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const postCount = user.posts.length;
+
+    const friendCount = await this.friendService.countFriends(user.id);
+
+    const postIds = user.posts.map((post) => post.id);
+
+    const totalLikes =
+      postIds.length > 0
+        ? await this.likeService.countLikesForPosts(postIds)
+        : 0;
+
+    return {
+      fullname: user.fullname,
+      username: user.username,
+      img: user.img,
+      postCount,
+      friendCount,
+      totalLikes,
+    };
   }
 }

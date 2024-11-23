@@ -7,6 +7,7 @@ import { RoomModule } from 'src/room/room.module'; // Nhập khẩu RoomModule
 import { FriendModule } from 'src/friend/friend.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
+import { LikesModule } from 'src/likes/likes.module';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { User } from 'src/user/entities/user.entity';
     MessageModule,
     RoomModule,
     FriendModule,
-    
+    LikesModule,
   ],
   providers: [SocketGateway, ChatService, UserService],
 })

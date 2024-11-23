@@ -140,4 +140,13 @@ export class FriendService {
     // Xóa mối quan hệ bạn bè
     await this.friendRepository.delete(friendship.id);
   }
+
+  async countFriends(userId: string): Promise<number> {
+    // Đếm số lượng bạn bè trong mối quan hệ (user1, user2) của userId
+    const totalFriends = await this.friendRepository.count({
+      where: [{ user1: { id: userId } }, { user2: { id: userId } }],
+    });
+
+    return totalFriends;
+  }
 }
