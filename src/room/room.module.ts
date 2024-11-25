@@ -13,6 +13,7 @@ import { Friend } from 'src/friend/entities/friend.entity';
 import { RoomUser } from './entities/roomUser.entity';
 import { FriendRequestModule } from 'src/friend-request/friend-request.module';
 import { LikesModule } from 'src/likes/likes.module';
+import { PostModule } from 'src/post/post.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { LikesModule } from 'src/likes/likes.module';
     MessageModule,
     FriendRequestModule,
     LikesModule,
+    PostModule
   ],
   providers: [RoomService, UserService],
   controllers: [RoomController],

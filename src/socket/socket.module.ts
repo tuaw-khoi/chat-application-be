@@ -8,6 +8,7 @@ import { FriendModule } from 'src/friend/friend.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { LikesModule } from 'src/likes/likes.module';
+import { PostModule } from 'src/post/post.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { LikesModule } from 'src/likes/likes.module';
     RoomModule,
     FriendModule,
     LikesModule,
+    PostModule
   ],
   providers: [SocketGateway, ChatService, UserService],
 })

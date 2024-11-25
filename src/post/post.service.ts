@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Between, In, Repository } from 'typeorm';
 import { Post } from './entities/post.entity';
 import { PhotoService } from 'src/photo/photo.service';
 import { Photo } from 'src/photo/entities/photo.entity';
@@ -277,5 +277,42 @@ export class PostService {
       throw new NotFoundException(`Post with ID ${id} not found`);
     }
     return post;
+  }
+
+  async getPostsForCurrentWeek(): Promise<Post[]> {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(now);
+    endOfWeek.setDate(now.getDate() + (6 - now.getDay()));
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    return await this.postRepository.find({
+      where: { createdAt: Between(startOfWeek, endOfWeek) },
+      relations: ['author', 'photos', 'likes', 'comments'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async getPostsForCurrentMonth(): Promise<Post[]> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
+
+    return await this.postRepository.find({
+      where: { createdAt: Between(startOfMonth, endOfMonth) },
+      relations: ['author', 'photos', 'likes', 'comments'],
+      order: { createdAt: 'DESC' },
+    });
   }
 }

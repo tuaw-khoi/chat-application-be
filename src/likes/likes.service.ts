@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { Post } from 'src/post/entities/post.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Like } from './entities/likes.entity';
@@ -75,5 +75,63 @@ export class LikesService {
       .getCount();
 
     return totalLikes;
+  }
+
+  async countLikesInWeek(): Promise<number> {
+    // Tính khoảng thời gian tuần hiện tại
+    const now = new Date();
+    const startOfWeek = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - now.getDay(), // Lấy ngày đầu tiên trong tuần (Chủ nhật)
+      0,
+      0,
+      0,
+      0,
+    );
+    const endOfWeek = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - now.getDay() + 6, // Lấy ngày cuối cùng trong tuần (Thứ bảy)
+      23,
+      59,
+      59,
+      999,
+    );
+    return this.likeRepository.count({
+      where: {
+        createdAt: Between(startOfWeek, endOfWeek),
+      },
+    });
+  }
+
+  async countLikesInMonth(): Promise<number> {
+    // Tính khoảng thời gian tháng hiện tại
+    const now = new Date();
+    const startOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+      0,
+      0,
+      0,
+      0,
+    );
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1, // Tháng tiếp theo
+      0, // Ngày cuối cùng của tháng hiện tại
+      23,
+      59,
+      59,
+      999,
+    );
+
+    // Đếm số lượng like trong khoảng thời gian tháng hiện tại
+    return this.likeRepository.count({
+      where: {
+        createdAt: Between(startOfMonth, endOfMonth),
+      },
+    });
   }
 }

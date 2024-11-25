@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
@@ -17,6 +17,7 @@ import * as jwt from 'jsonwebtoken';
 import { FriendService } from 'src/friend/friend.service';
 import { RoomService } from 'src/room/room.service';
 import { LikesService } from 'src/likes/likes.service';
+import { PostService } from 'src/post/post.service';
 
 @Injectable()
 export class UserService {
@@ -26,6 +27,7 @@ export class UserService {
     private readonly friendService: FriendService,
     private readonly roomService: RoomService,
     private readonly likeService: LikesService,
+    private readonly postService: PostService,
   ) {}
   async refreshLogin(token: string): Promise<any> {
     try {
@@ -310,4 +312,88 @@ export class UserService {
       totalLikes,
     };
   }
+
+  async getAccountStats(): Promise<{ weekCount: number; monthCount: number }> {
+    const now = new Date();
+
+    // Tính ngày bắt đầu của tuần và tháng
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(now.getDate() - 7);
+
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(now.getMonth() - 1);
+
+    // Đếm số tài khoản được tạo trong vòng 1 tuần
+    const weekCount = await this.usersRepository.count({
+      where: {
+        created_at: Between(oneWeekAgo, now),
+      },
+    });
+
+    // Đếm số tài khoản được tạo trong vòng 1 tháng
+    const monthCount = await this.usersRepository.count({
+      where: {
+        created_at: Between(oneMonthAgo, now),
+      },
+    });
+
+    return { weekCount, monthCount };
+  }
+
+  async getUserCreationStats(
+    months: number,
+  ): Promise<{ month: string; users: number }[]> {
+    const now = new Date();
+    const stats: { month: string; users: number }[] = [];
+
+    for (let i = months - 1; i >= 0; i--) {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+
+      const userCount = await this.usersRepository.count({
+        where: {
+          created_at: Between(startOfMonth, endOfMonth),
+        },
+      });
+
+      const monthName = startOfMonth.toLocaleString('default', {
+        month: 'long',
+      });
+      stats.push({ month: monthName, users: userCount });
+    }
+
+    return stats;
+  }
+
+  async getStatistics(): Promise<{
+    weeklyPosts: number;
+    weeklyLikes: number;
+    monthlyPosts: number;
+    monthlyLikes: number;
+    userStats: { month: string; users: number }[];
+  }> {
+    // Lấy số liệu từ các service hiện có
+    const [weeklyPosts, monthlyPosts] = await Promise.all([
+      this.postService.getPostsForCurrentWeek().then((posts) => posts.length),
+      this.postService.getPostsForCurrentMonth().then((posts) => posts.length),
+    ]);
+
+    const [weeklyLikes, monthlyLikes] = await Promise.all([
+      this.likeService.countLikesInWeek(),
+      this.likeService.countLikesInMonth(),
+    ]);
+
+    // Tính số liệu người dùng trong 6 tháng qua
+    const userStats = await this.getUserCreationStats(6);
+
+    return {
+      weeklyPosts,
+      weeklyLikes,
+      monthlyPosts,
+      monthlyLikes,
+      userStats,
+    };
+  }
+
+
 }
