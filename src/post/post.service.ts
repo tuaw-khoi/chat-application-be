@@ -25,17 +25,16 @@ export class PostService {
   ) {}
 
   async create(createPostDto: CreatePostDto, userId: string): Promise<Post> {
-    const { content, photos, isPublic = true } = createPostDto;
+    const { content, photos, isPublic } = createPostDto;
+    const isPublicBoolean = isPublic === 'true';
     const post = this.postRepository.create({
       content,
-      isPublic,
+      isPublic: isPublicBoolean,
       author: { id: userId },
     });
-
     if (photos && photos.length > 0) {
       post.photos = await this.photoService.createPhotos(photos);
     }
-
     return await this.postRepository.save(post);
   }
 

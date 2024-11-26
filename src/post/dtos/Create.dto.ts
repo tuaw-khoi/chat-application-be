@@ -9,5 +9,5 @@ export class CreatePostDto {
   photos?: string[];
 
   @IsOptional()
-  isPublic?: boolean;
+  isPublic?: string;
 }
