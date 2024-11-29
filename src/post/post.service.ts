@@ -130,7 +130,10 @@ export class PostService {
       .leftJoinAndSelect('likes.user', 'likeUser')
       .leftJoinAndSelect('likeUser.roomUsers', 'roomUser')
       .leftJoinAndSelect('roomUser.room', 'room')
-      .where('post.author.id IN (:...friendIds)', { friendIds })
+      .where(
+        '(post.author.id IN (:...friendIds) AND (post.isPublic = true OR post.author.id = :userId))',
+        { friendIds, userId },
+      )
       .orderBy('post.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit)

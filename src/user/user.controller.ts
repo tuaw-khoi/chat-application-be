@@ -29,6 +29,16 @@ export class UserController {
     return this.userService.findOne(id);
   }
 
+  @Post('info')
+  async getUserWithoutPassword(@Body() body: { usernameOremail: string }) {
+    const { usernameOremail } = body;
+    if (!usernameOremail || usernameOremail.trim() === '') {
+      throw new NotFoundException('Query parameter is missing or invalid');
+    }
+    console.log(usernameOremail);
+    return this.userService.getUserWithoutPassword(usernameOremail);
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.userService.remove(id);
@@ -51,6 +61,14 @@ export class UserController {
     @Body() updateUserDto: UpdateUserDto,
   ) {
     return await this.userService.updateProfile(id, updateUserDto);
+  }
+
+  @Put(':id/user')
+  async updateUser(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return await this.userService.updateUser(id, updateUserDto);
   }
 
   @Put(':id/change-password')

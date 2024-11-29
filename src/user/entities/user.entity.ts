@@ -48,30 +48,57 @@ export class User {
   @UpdateDateColumn()
   updated_at: Date;
 
-  @OneToMany(() => RoomUser, (roomUser) => roomUser.user)
+  @OneToMany(() => RoomUser, (roomUser) => roomUser.user, {
+    cascade: true, // Xóa roomUsers khi user bị xóa
+    onDelete: 'CASCADE',
+  })
   roomUsers: RoomUser[];
 
-  @OneToMany(() => Message, (message) => message.sender)
+  @OneToMany(() => Message, (message) => message.sender, {
+    cascade: true, // Xóa roomUsers khi user bị xóa
+    onDelete: 'CASCADE',
+  })
   messages: Message[];
 
-  @OneToMany(() => FriendRequest, (friendRequest) => friendRequest.sender)
+  @OneToMany(() => FriendRequest, (friendRequest) => friendRequest.sender, {
+    cascade: true, // Xóa roomUsers khi user bị xóa
+    onDelete: 'CASCADE',
+  })
   sentFriendRequests: FriendRequest[];
 
-  @OneToMany(() => FriendRequest, (friendRequest) => friendRequest.receiver)
+  @OneToMany(() => FriendRequest, (friendRequest) => friendRequest.receiver, {
+    cascade: true, // Xóa roomUsers khi user bị xóa
+    onDelete: 'CASCADE',
+  })
   receivedFriendRequests: FriendRequest[];
 
-  @OneToMany(() => Friend, (friend) => friend.user1)
+  @OneToMany(() => Friend, (friend) => friend.user1, {
+    cascade: true, // Xóa roomUsers khi user bị xóa
+    onDelete: 'CASCADE',
+  })
   friends: Friend[];
 
-  @OneToMany(() => Post, (post) => post.author)
+  @OneToMany(() => Post, (post) => post.author, {
+    cascade: true, // Xóa roomUsers khi user bị xóa
+    onDelete: 'CASCADE',
+  })
   posts: Post[];
 
-  @OneToMany(() => Comment, (comment) => comment.author)
+  @OneToMany(() => Comment, (comment) => comment.author, {
+    cascade: true, // Xóa roomUsers khi user bị xóa
+    onDelete: 'CASCADE',
+  })
   comments: Comment[];
 
-  @OneToMany(() => Like, (like) => like.user)
+  @OneToMany(() => Like, (like) => like.user, {
+    cascade: true, // Xóa roomUsers khi user bị xóa
+    onDelete: 'CASCADE',
+  })
   likes: Like[];
 
-  @OneToMany(() => Notification, (notification) => notification.recipient)
+  @OneToMany(() => Notification, (notification) => notification.recipient, {
+    cascade: true, // Xóa roomUsers khi user bị xóa
+    onDelete: 'CASCADE',
+  })
   notifications: Notification[];
 }

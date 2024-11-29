@@ -259,6 +259,14 @@ export class UserService {
     return await this.usersRepository.save(user);
   }
 
+  async updateUser(id: string, updateData: Partial<User>): Promise<User> {
+    const user = await this.usersRepository.findOne({ where: { id } });
+    if (!user) throw new BadRequestException('User not found');
+
+    Object.assign(user, updateData);
+    return await this.usersRepository.save(user);
+  }
+
   async changePassword(
     id: string,
     currentPassword: string,
@@ -395,5 +403,15 @@ export class UserService {
     };
   }
 
+  async getUserWithoutPassword(query: string): Promise<Partial<User>> {
+    const user = await this.usersRepository.findOne({
+      where: [{ username: query }, { email: query }], // Tìm theo username hoặc email
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
+    const { password, ...userWithoutPassword } = user; // Loại bỏ password khỏi kết quả
+    return userWithoutPassword;
+  }
 }
