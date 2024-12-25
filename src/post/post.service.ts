@@ -14,6 +14,7 @@ import { UpdatePostDto } from './dtos/Update.dto';
 import { User } from 'src/user/entities/user.entity';
 import { FriendService } from 'src/friend/friend.service';
 import { da } from '@faker-js/faker/.';
+import { NotificationService } from 'src/notification/notification.service';
 
 @Injectable()
 export class PostService {
@@ -22,6 +23,7 @@ export class PostService {
     private readonly postRepository: Repository<Post>,
     private readonly photoService: PhotoService,
     private readonly friendService: FriendService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async create(createPostDto: CreatePostDto, userId: string): Promise<Post> {
@@ -94,6 +96,7 @@ export class PostService {
       relations: ['author', 'photos'],
     });
     await this.postRepository.remove(post);
+    await this.notificationService.deleteNotificationsByPostId(id);
   }
 
   async findPostOwner(postId: string): Promise<User> {

@@ -80,4 +80,8 @@ export class NotificationService {
       createdAt: notification.createdAt,
     }));
   }
+
+  async deleteNotificationsByPostId(postId: string): Promise<void> {
+    await this.notificationRepository.delete({ postId });
+  }
 }

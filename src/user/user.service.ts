@@ -408,6 +408,7 @@ export class UserService {
       where: [{ username: query }, { email: query }], // Tìm theo username hoặc email
     });
     if (!user) {
+      
       throw new NotFoundException('User not found');
     }
 
